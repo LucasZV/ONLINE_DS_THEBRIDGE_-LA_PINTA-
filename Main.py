@@ -72,7 +72,7 @@ while True:
 
         print(f"{nombre_jugador} Empieza el juego!")
 
-        fun.dispara_propio(tablero_maquina = fun.tablero_maquina, tablero_visible= fun.tablero_visible)
+        fun.dispara_propio(tablero_maquina = fun.tablero_maquina, tablero_visible= fun.tablero_visible) #--->SUSTITUIR POR FUN DIFICIL
         break
     #-------------------------------------------------------------------------------------------------#
     #SE REPITE EL BUCLE SI EL JUGADOR NO SABE ESCRIBIR
