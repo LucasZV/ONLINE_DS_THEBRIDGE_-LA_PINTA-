@@ -1,4 +1,3 @@
-
 import numpy as np
 import time
 
@@ -22,63 +21,108 @@ def coloca_barco(tablero,barco):
     for pieza in barco:
         tablero[pieza]="O"
 
-def generar_barco_simple (tablero,eslora,tablero_auto=True):
 
-    #Decido si le quiero dar orientacion aleatoria o no
+def generar_barco_simple(tablero, eslora, tablero_auto=True):
     if tablero_auto:
-        orientacion = np.random.choice(['N','S','E','O'])
+        orientacion = np.random.choice(['N', 'S', 'E', 'O'])
     else:
-        orientacion = input('Introduce uno de estas direcciones: N, S, E, O')
+        orientacion = input('Introduce una de estas direcciones: N, S, E, O')
 
-    #para cada orientacion (auto o manual) le doy unas cordenadas al barco y lo meto en el tablero
-    #si no tengo espacio para mas barcos se queda pensando que hacer, tengo que corregir eso
-    if orientacion == 'E':
-        while True:
+    intentos = 0
+    max_intentos = 100  # Número máximo de intentos para encontrar una posición válida
+
+    while intentos < max_intentos:
+        if orientacion == 'E':
             if tablero_auto:
-                barco_x = np.random.randint(0,10)
-                barco_y = np.random.randint(0,10)
+                barco_x = np.random.randint(0, tablero.shape[0])
+                barco_y = np.random.randint(0, tablero.shape[1] - eslora + 1)
             else:
-                barco_x = int(input('Introduce una coordenada X entre 0 y 9 inclusive'))
-                barco_y = int(input('Introduce una coordenada Y entre 0 y 9 inclusive'))
-            if barco_y <= (10-eslora) and all(hueco != 'O' for hueco in tablero[barco_x , barco_y : barco_y + eslora]):
-                tablero[barco_x , barco_y : barco_y + eslora] = 'O'
-                break
+                while True:
+                    barco_x = int(input('Introduce una coordenada X entre 0 y 9 inclusive'))
+                    if barco_x > tablero.shape[1]:
+                        print("Valor no valido, introduce un numero valido")
+                    else:
+                        break
+                while True:        
+                    barco_y = int(input('Introduce una coordenada Y entre 0 y 9 inclusive'))
+                    if barco_y + eslora > tablero.shape[0]:
+                        print("Valor no valido, introduce un numero valido")
+                    else:
+                        break
+            if all(tablero[barco_x, y] != 'O' for y in range(barco_y, barco_y + eslora)):
+                    tablero[barco_x, barco_y:barco_y + eslora] = 'O'
+                    return tablero
+
+        elif orientacion == 'O':
+            if tablero_auto:
+                barco_x = np.random.randint(0, tablero.shape[0])
+                barco_y = np.random.randint(eslora - 1, tablero.shape[1])
+            else:
+                while True:
+                    barco_x = int(input('Introduce una coordenada X entre 0 y 9 inclusive'))
+                    if barco_x > tablero.shape[1]:
+                        print("Valor no valido, introduce un numero valido")
+                    else:
+                        break
+                while True:        
+                    barco_y = int(input('Introduce una coordenada Y entre 0 y 9 inclusive'))
+                    if barco_y - eslora + 1 < 0:
+                        print("Valor no valido, introduce un numero valido")
+                    else:
+                        break
+            if all(tablero[barco_x, y] != 'O' for y in range(barco_y - eslora + 1, barco_y + 1)):
+                tablero[barco_x, barco_y - eslora + 1:barco_y + 1] = 'O'
+                return tablero
+                
+        elif orientacion == 'N':
+            if tablero_auto:
+                barco_x = np.random.randint(eslora - 1, tablero.shape[0])
+                barco_y = np.random.randint(0, tablero.shape[1])
+            else:
+                while True:
+                    barco_x = int(input('Introduce una coordenada X entre 0 y 9 inclusive'))
+                    if barco_x - eslora + 1 > 0:
+                        print("Valor no valido, introduce un numero valido")
+                    else:
+                        break
+                while True:        
+                    barco_y = int(input('Introduce una coordenada Y entre 0 y 9 inclusive'))
+                    if barco_y > tablero.shape[0]:
+                        print("Valor no valido, introduce un numero valido")
+                    else:
+                        break
+            if all(tablero[x, barco_y] != 'O' for x in range(barco_x - eslora + 1, barco_x + 1)):
+                tablero[barco_x - eslora + 1:barco_x + 1, barco_y] = 'O'
+                return tablero
+
+        elif orientacion == 'S':
+            if tablero_auto:
+                barco_x = np.random.randint(0, tablero.shape[0] - eslora + 1)
+                barco_y = np.random.randint(0, tablero.shape[1])
+            else:
+                while True:
+                    barco_x = int(input('Introduce una coordenada X entre 0 y 9 inclusive'))
+                    if barco_x + eslora > tablero.shape[1]:
+                        print("Valor no valido, introduce un numero valido")
+                    else:
+                        break
+                while True:        
+                    barco_y = int(input('Introduce una coordenada Y entre 0 y 9 inclusive'))
+                    if barco_y > tablero.shape[0]:
+                        print("Valor no valido, introduce un numero valido")
+                    else:
+                        break   
+            if all(tablero[x, barco_y] != 'O' for x in range(barco_x, barco_x + eslora)):
+                tablero[barco_x:barco_x + eslora, barco_y] = 'O'
+                return tablero
+
+        intentos += 1
+
+    if intentos >= max_intentos:
+        print("No se encontró una posición válida para el barco después de varios intentos.")
+    else:
+        return tablero
     
-    elif orientacion == 'O':
-        while True:
-            if tablero_auto:
-                barco_x = np.random.randint(0,10)
-                barco_y = np.random.randint(0,10)
-            else:
-                barco_x = int(input('Introduce una coordenada X entre 0 y 9 inclusive'))
-                barco_y = int(input('Introduce una coordenada Y entre 0 y 9 inclusive'))
-            if barco_y >= (eslora-1) and all(hueco != 'O' for hueco in tablero[barco_x, barco_y - eslora : barco_y]):
-                tablero[barco_x, barco_y - eslora : barco_y] = 'O'
-                break
-
-    elif orientacion == 'N':
-        while True:
-            if tablero_auto:
-                barco_x = np.random.randint(0,10)
-                barco_y = np.random.randint(0,10)
-            else:
-                barco_x = int(input('Introduce una coordenada X entre 0 y 9 inclusive'))
-                barco_y = int(input('Introduce una coordenada Y entre 0 y 9 inclusive'))
-            if barco_x >= (eslora-1) and all(hueco != 'O' for hueco in tablero[barco_x - eslora : barco_x, barco_y]):
-                tablero[barco_x - eslora : barco_x, barco_y] = 'O'
-                break
-        
-    elif orientacion == 'S':
-        while True:
-            if tablero_auto:
-                barco_x = np.random.randint(0,10)
-                barco_y = np.random.randint(0,10)
-            else:
-                barco_x = int(input('Introduce una coordenada X entre 0 y 9 inclusive'))
-                barco_y = int(input('Introduce una coordenada Y entre 0 y 9 inclusive'))
-            if barco_x <= (10-eslora) and all(hueco != 'O' for hueco in tablero[barco_x : barco_x + eslora, barco_y]):
-                tablero[barco_x : barco_x + eslora, barco_y] = 'O'
-                break
 
 #No se si imprimir 1 por 1 cada barco o todos
 def generar_todos_los_barcos(tablero_auto=True):
@@ -92,46 +136,46 @@ def generar_todos_los_barcos(tablero_auto=True):
             print('Introduce las coordenadas de tu barco de 4 de eslora')
             generar_barco_simple(tablero,4,tablero_auto=False)  #lo tengo que generar en mi tablero
             print(tablero)   #mi tablero tambien
-            print("*********************************************")
+            print("***************")
 
         for eslora in range(cantidad_barcos_3_eslora):
             print('Introduce las coordenadas de tu barco de 3 de eslora')
             generar_barco_simple(tablero,3,tablero_auto=False)
             print(tablero)
-            print("*********************************************")
+            print("***************")
 
         for eslora in range(cantidad_barcos_2_eslora):
             print('Introduce las coordenadas de tu barco de 2 de eslora')
             generar_barco_simple(tablero,2,tablero_auto=False)
             print(tablero)
-            print("*********************************************")
+            print("***************")
 
         for eslora in range(cantidad_barcos_1_eslora):
             print('Introduce las coordenadas de tu barco de 1 de eslora')
             generar_barco_simple(tablero,1,tablero_auto=False)
             print(tablero)
-            print("*********************************************")
+            print("***************")
 
     elif tablero_auto==True:
         for eslora in range(cantidad_barcos_4_eslora):
             generar_barco_simple(tablero,4,tablero_auto=True)  #lo tengo que generar en mi tablero
             print(tablero)   #mi tablero tambien
-            print("*********************************************")
+            print("***************")
 
         for eslora in range(cantidad_barcos_3_eslora):
             generar_barco_simple(tablero,3,tablero_auto=True)
             print(tablero)
-            print("*********************************************")
+            print("***************")
 
         for eslora in range(cantidad_barcos_2_eslora):
             generar_barco_simple(tablero,2,tablero_auto=True)
             print(tablero)
-            print("*********************************************")
+            print("***************")
 
         for eslora in range(cantidad_barcos_1_eslora):
             generar_barco_simple(tablero,1,tablero_auto=True)
             print(tablero)
-            print("*********************************************")
+            print("***************")
 
             
 # GENERA TODOS LOS BARCOS DE LA MAQUINA
