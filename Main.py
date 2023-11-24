@@ -1,6 +1,7 @@
 import HF_fun as fun
+import HF_var as var
 
-tablero_visible = fun.tablero_visible
+tablero_visible = var.tablero_visible
 
 print ("Bienvenido a hundir la flota!!")
 nombre_jugador = input("¿Como te llamas?")

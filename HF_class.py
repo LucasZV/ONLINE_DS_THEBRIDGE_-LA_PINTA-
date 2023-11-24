@@ -1,5 +1,6 @@
 
 # DEFINIMOS LA CLASE BARCO
+import numpy as np
 class Barco:
     def __init__(self,nombre,longitud):
         self.nombre=nombre

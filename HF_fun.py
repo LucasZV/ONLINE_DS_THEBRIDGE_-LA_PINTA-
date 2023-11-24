@@ -1,11 +1,12 @@
 import numpy as np
 import time
+import HF_var as var
 
 #CREACION DEL TABLERO
 
-tablero = np.full((10,10), ' ')
-tablero_maquina = np.full((10,10),' ')
-tablero_visible = np.full((10,10), '?')
+tablero = var.tablero
+tablero_maquina =var.tablero_maquina
+tablero_visible =var.tablero_visible
 
 TAM_TABLERO=(10,10)
 
@@ -215,7 +216,7 @@ def dispara_propio(tablero_maquina,tablero_visible):
                 disparo_mio_x = int(input('Introduce la coordenada X de tu disparo: [0,9]'))
                 disparo_mio_y = int(input('Introduce la coordenada Y de tu disparo: [0,9]'))
                 print(f'el turno actual del jugador es {contador_turnos_jugador}')
-                
+
                 if tablero_maquina[disparo_mio_x, disparo_mio_y] == "O":
                     tablero_maquina[disparo_mio_x, disparo_mio_y] = "X"
                     tablero_visible[disparo_mio_x, disparo_mio_y] = 'X'         #no me aparecen mensajes de tocado
