@@ -1,5 +1,5 @@
-import HF_fun as fun
-import HF_var as var
+import HF_fun_m as fun
+import HF_var_m as var
 
 # MENSAJES DE INICIO
 print ("Bienvenido a hundir la flota!!")
@@ -79,8 +79,3 @@ while True:
     else:
         print(f"{nombre_jugador} no te he entendido, escribe <Normal> / <No gano ni queriendo>")
 
-#COSAS QUE FALTAN!!
-
-    #1. IMPLEMENTAR FUNCION LIMPIAR TABLERO
-    #2. AÑADIR UNA FORMA DE SALIR DEL JUEGO ESCRIBIENDO "SALIR" O ALGO POR EL ESTILO
-            #He visto que hay un modulo para importar que hace esa función, pero hay que mirar como hacerlo :)
