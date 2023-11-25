@@ -1,6 +1,6 @@
 import numpy as np
 import time
-import HF_var as var
+import HF_var_m as var
 
 #CREACION DEL TABLERO
 
@@ -304,53 +304,55 @@ def dispara_propio(tablero_maquina,tablero_visible):
                         disparo_mio_x = int(x_1)
                         disparo_mio_y = int(y_1)
                     except ValueError:
-                            print("Se espera un número o salir")
-                            continue
-                        
-                    if tablero_maquina[disparo_mio_x, disparo_mio_y] == "O":
-                        tablero_maquina[disparo_mio_x, disparo_mio_y] = "X"
-                        tablero_visible[disparo_mio_x, disparo_mio_y] = 'X'         #no me aparecen mensajes de tocado
-                        print('¡TOCADO!\n')
-                        for barco in var.barcos_lista:
-                            if all(coordinate == "X" for coordinate in barco.coord):
-                                print(f"{barco.nombre} HUNDIDO!\n")
-
-                        print('TABLERO')
-                        print(tablero_visible)
-                        print('\n')
-                        time.sleep(1)
-                        
-                        turno_jugador = True
-                    
-                    elif tablero_maquina[disparo_mio_x, disparo_mio_y] == "X":
-                        print("Disparo previamente realizado por el jugador!")
-                        print('TABLERO')
-                        print(tablero_visible)
-                        print('\n')
-                        time.sleep(1)
-
-                        turno_jugador = True
-
-                    elif tablero_maquina[disparo_mio_x, disparo_mio_y] == "-":
-                        print("Disparo previamente realizado por el jugador!")
-                        print('TABLERO')
-                        print(tablero_visible)
-                        print('\n')
-                        time.sleep(1)
-                        
-                        turno_jugador = True
-
-                    elif tablero_maquina[disparo_mio_x, disparo_mio_y] == " ":
-                        tablero_maquina[disparo_mio_x, disparo_mio_y] = "-"
-                        tablero_visible[disparo_mio_x, disparo_mio_y] = '-'
-                        print("¡AGUA!")
-                        print('TABLERO VISIBLE')
-                        print(tablero_visible)
-                        print('\n')
-                        time.sleep(1)
-                        turno_jugador = False
+                        print("Se espera un número o salir")
                         continue
+                    if 0 <= disparo_mio_x < 10 and 0 <= disparo_mio_y < 10:    
+                        if tablero_maquina[disparo_mio_x, disparo_mio_y] == "O":
+                            tablero_maquina[disparo_mio_x, disparo_mio_y] = "X"
+                            tablero_visible[disparo_mio_x, disparo_mio_y] = 'X'         #no me aparecen mensajes de tocado
+                            print('¡TOCADO!\n')
+                            for barco in var.barcos_lista:
+                                if all(coordinate == "X" for coordinate in barco.coord):
+                                    print(f"{barco.nombre} HUNDIDO!\n")
 
+                            print('TABLERO')
+                            print(tablero_visible)
+                            print('\n')
+                            time.sleep(1)
+                            
+                            turno_jugador = True
+                        
+                        elif tablero_maquina[disparo_mio_x, disparo_mio_y] == "X":
+                            print("Disparo previamente realizado por el jugador!")
+                            print('TABLERO')
+                            print(tablero_visible)
+                            print('\n')
+                            time.sleep(1)
+
+                            turno_jugador = True
+
+                        elif tablero_maquina[disparo_mio_x, disparo_mio_y] == "-":
+                            print("Disparo previamente realizado por el jugador!")
+                            print('TABLERO')
+                            print(tablero_visible)
+                            print('\n')
+                            time.sleep(1)
+                            
+                            turno_jugador = True
+
+                        elif tablero_maquina[disparo_mio_x, disparo_mio_y] == " ":
+                            tablero_maquina[disparo_mio_x, disparo_mio_y] = "-"
+                            tablero_visible[disparo_mio_x, disparo_mio_y] = '-'
+                            print("¡AGUA!")
+                            print('TABLERO VISIBLE')
+                            print(tablero_visible)
+                            print('\n')
+                            time.sleep(1)
+                            turno_jugador = False
+                            break
+                    else:
+                        print("Coordenadas fuera de rango. Vuelve a intentarlo.")
+                        turno_jugador = False            
             else:
                 print('¡HAS PERDIDO!')
                 juego_en_progreso=False
@@ -402,4 +404,5 @@ def dispara_propio(tablero_maquina,tablero_visible):
 
             else:
                 print('¡HAS GANADO!')
+                juego_en_progreso=False
                 break
