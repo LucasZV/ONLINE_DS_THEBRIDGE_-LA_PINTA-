@@ -202,107 +202,106 @@ def limpiar_tablero(lado=int(10),pieza=" "):
 
 
 # Tengo que revisarlo, me da fallos
-def dispara_propio(tablero_maquina, tablero_visible):
+def dispara_propio(tablero_maquina,tablero_visible):
     print('Si aciertas te tocará otra vez. Si fallas jugará la máquina')
-    
     turno_jugador = True
-    juego_en_progreso = True
     contador_turnos_jugador = 0
     contador_turnos_maquina = 0
-    
-    while juego_en_progreso:
+
+    while True:
+
         if turno_jugador == True:
             contador_turnos_jugador = contador_turnos_jugador +1
             if 'O' in tablero_maquina:
-                while True:
-                    x_1 = input('Introduce la coordenada X de tu disparo: [0,9], si deseas salir escribe <salir>: ')
-                    if x_1.lower() == "salir":
-                        print("HAS SALIDO DEL JUEGO")
-                        limpiar_tablero()
-                        juego_en_progreso = False
-                        break
+                disparo_mio_x = int(input('Introduce la coordenada X de tu disparo: [0,9]'))
+                disparo_mio_y = int(input('Introduce la coordenada Y de tu disparo: [0,9]'))
+                print(f'el turno actual del jugador es {contador_turnos_jugador}')
 
-                    y_1 = input('Introduce la coordenada Y de tu disparo: [0,9], si deseas salir escribe <salir>: ')
-                    if y_1.lower() == "salir":
-                        print("HAS SALIDO DEL JUEGO")
-                        limpiar_tablero()
-                        juego_en_progreso = False
-                        break
+                if tablero_maquina[disparo_mio_x, disparo_mio_y] == "O":
+                    tablero_maquina[disparo_mio_x, disparo_mio_y] = "X"
+                    tablero_visible[disparo_mio_x, disparo_mio_y] = 'X'         #no me aparecen mensajes de tocado
+                    print('¡TOCADO!\n')
+                    print('TABLERO')
+                    print(tablero_visible)
+                    print('\n')
+                    time.sleep(1)
+                    
+                    turno_jugador = True
+                
+                elif tablero_maquina[disparo_mio_x, disparo_mio_y] == "X":
+                    print("Disparo previamente realizado por el jugador!")
+                    print('TABLERO')
+                    print(tablero_visible)
+                    print('\n')
+                    time.sleep(1)
 
-                    try:
-                        disparo_mio_x = int(x_1)
-                        disparo_mio_y = int(y_1)
-                    except ValueError:
-                        print("Se espera un número o salir")
-                        continue
+                    turno_jugador = True
 
-                    if 0 <= disparo_mio_x < 10 and 0 <= disparo_mio_y < 10:
-                        if tablero_maquina[disparo_mio_x, disparo_mio_y] == "O":
-                            tablero_maquina[disparo_mio_x, disparo_mio_y] = "X"
-                            tablero_visible[disparo_mio_x, disparo_mio_y] = 'X'
-                            print('¡TOCADO!\n')
-                            print('TABLERO')
-                            print(tablero_visible)
-                            print('\n')
-                            time.sleep(1)
-                            turno_jugador = True
-                        elif tablero_maquina[disparo_mio_x, disparo_mio_y] == "X" or tablero_maquina[disparo_mio_x, disparo_mio_y] == "-":
-                            print("Disparo previamente realizado por el jugador!")
-                            print('TABLERO')
-                            print(tablero_visible)
-                            print('\n')
-                            time.sleep(1)
-                            turno_jugador = True
-                        elif tablero_maquina[disparo_mio_x, disparo_mio_y] == " ":
-                            tablero_maquina[disparo_mio_x, disparo_mio_y] = "-"
-                            tablero_visible[disparo_mio_x, disparo_mio_y] = '-'
-                            print("¡AGUA!")
-                            print('TABLERO VISIBLE')
-                            print(tablero_visible)
-                            print('\n')
-                            time.sleep(1)
-                            turno_jugador = False
-                            break
-                        else:
-                            print("Coordenadas inválidas. Vuelve a intentarlo.")
-                    else:
-                        print("Coordenadas fuera de rango. Vuelve a intentarlo.")
+                elif tablero_maquina[disparo_mio_x, disparo_mio_y] == "-":
+                    print("Disparo previamente realizado por el jugador!")
+                    print('TABLERO')
+                    print(tablero_visible)
+                    print('\n')
+                    time.sleep(1)
+                    
+                    turno_jugador = True
+
+                elif tablero_maquina[disparo_mio_x, disparo_mio_y] == " ":
+                    tablero_maquina[disparo_mio_x, disparo_mio_y] = "-"
+                    tablero_visible[disparo_mio_x, disparo_mio_y] = '-'
+                    print("¡AGUA!")
+                    print('TABLERO VISIBLE')
+                    print(tablero_visible)
+                    print('\n')
+                    time.sleep(1)
+                    turno_jugador = False
+                    continue
+
             else:
                 print('¡HAS PERDIDO!')
-                juego_en_progreso = False
+                break
 
         if turno_jugador == False:
             contador_turnos_maquina = contador_turnos_maquina +1
-            if 'O' in tablero_maquina:
-                disparo_maquina_x = np.random.randint(0, 10)
-                disparo_maquina_y = np.random.randint(0, 10)
-                print(f'El turno actual de la máquina es {contador_turnos_maquina}')
+            if 'O' in tablero:
+                disparo_maquina_x = np.random.randint(0,10)
+                disparo_maquina_y = np.random.randint(0,10)
+                print(f'el turno actual de la máquina es {contador_turnos_maquina}')
 
-                if tablero_maquina[disparo_maquina_x, disparo_maquina_y] == "O":
-                    tablero_maquina[disparo_maquina_x, disparo_maquina_y] = "X"
+                if tablero[disparo_maquina_x, disparo_maquina_y] == "O":
+                    tablero[disparo_maquina_x, disparo_maquina_y] = "X"
                     print("¡TE HAN DADO!")
                     print('TABLERO DEL JUGADOR')
-                    print(tablero_maquina)
+                    print(tablero)
                     print('\n')
                     time.sleep(1)
                     turno_jugador = False
-                elif tablero_maquina[disparo_maquina_x, disparo_maquina_y] == " ":
-                    tablero_maquina[disparo_maquina_x, disparo_maquina_y] = "-"
+
+                elif tablero[disparo_maquina_x, disparo_maquina_y] == " ":
+                    tablero[disparo_maquina_x, disparo_maquina_y] = "-"
                     print("LA MÁQUINA HA DISPARADO AL AGUA!")
                     print('TABLERO DEL JUGADOR')
-                    print(tablero_maquina)
+                    print(tablero)
                     print('\n')
                     time.sleep(1)
                     turno_jugador = True
-                elif tablero_maquina[disparo_maquina_x, disparo_maquina_y] == "X" or tablero_maquina[disparo_maquina_x, disparo_maquina_y] == "-":
+                    
+                elif tablero[disparo_maquina_x, disparo_maquina_y] == "X":
                     print("Disparo previamente realizado por la máquina!")
                     print('TABLERO DEL JUGADOR')
-                    print(tablero_maquina)
+                    print(tablero)
                     print('\n')
                     time.sleep(1)
                     turno_jugador = False
-                else:
-                    print("Error en las coordenadas de la máquina.")
+
+                elif tablero[disparo_maquina_x, disparo_maquina_y] == "-":
+                    print("Disparo previamente realizado por la máquina!")
+                    print('TABLERO DEL JUGADOR')
+                    print(tablero)
+                    print('\n')
+                    time.sleep(1)
+                    turno_jugador = False
+
             else:
                 print('¡HAS GANADO!')
-                juego_en_progreso = False
+                break
