@@ -267,6 +267,7 @@ def dispara_propio(tablero_maquina, tablero_visible):
                             print("Coordenadas inválidas. Vuelve a intentarlo.")
                     else:
                         print("Coordenadas fuera de rango. Vuelve a intentarlo.")
+                        turno_jugador = False
             else:
                 print('¡HAS PERDIDO!')
                 juego_en_progreso = False
