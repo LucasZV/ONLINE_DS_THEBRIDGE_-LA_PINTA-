@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import HF_var_m as var
+import Main_m
 
 #CREACION DEL TABLERO
 
@@ -283,6 +284,7 @@ def dispara_propio(tablero_maquina,tablero_visible):
     while juego_en_progreso:
         if turno_jugador == True:
             contador_turnos_jugador = contador_turnos_jugador +1
+            print(f'el turno actual de {Main_m.nombre_jugador}: {contador_turnos_jugador}')
             if 'O' in tablero_maquina:
                 while juego_en_progreso:
 
@@ -360,11 +362,12 @@ def dispara_propio(tablero_maquina,tablero_visible):
 
         if turno_jugador == False and juego_en_progreso==True:
             contador_turnos_maquina = contador_turnos_maquina +1
+            print(f'el turno actual de la maquina es: {contador_turnos_maquina}')
+
             if 'O' in tablero:
                 disparo_maquina_x = np.random.randint(0,10)
                 disparo_maquina_y = np.random.randint(0,10)
-                print(f'el turno actual de la máquina es {contador_turnos_maquina}')
-
+                
                 if tablero[disparo_maquina_x, disparo_maquina_y] == "O":
                     tablero[disparo_maquina_x, disparo_maquina_y] = "X"
                     print("¡TE HAN DADO!")
