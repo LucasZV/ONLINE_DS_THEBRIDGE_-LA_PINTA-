@@ -1,11 +1,9 @@
 import HF_fun as fun
 import HF_var as var
 
-tablero_visible = var.tablero_visible
-
+# MENSAJES DE INICIO
 print ("Bienvenido a hundir la flota!!")
 nombre_jugador = input("¿Como te llamas?")
-
 print(f"Maravilloso! {nombre_jugador}, seleciona a continuación el nivel de dificultad:")
 
 while True:
@@ -20,7 +18,7 @@ while True:
         fun.crea_tablero_maquina()
 
         print(f"Este es tu tablero {nombre_jugador}, ¿Quieres colocar tus barcos aleatoriamente, o manualmente?")
-        print(fun.tablero)
+        print(var.tablero)
 
         while True:
             colocar_barcos_input = input(f"Aleatorio / Manual").lower()
@@ -37,11 +35,11 @@ while True:
                 print(f"No te he entendido {nombre_jugador}, escribe <Aleatorio> o <manual>")
         fun.generar_todos_los_barcos_maquina()
 
-        print(fun.tablero)
+        print(var.tablero)
 
         print(f"{nombre_jugador} Empieza el juego!")
 
-        fun.dispara_propio(tablero_maquina = fun.tablero_maquina, tablero_visible= fun.tablero_visible)
+        fun.dispara_propio(tablero_maquina = var.tablero_maquina, tablero_visible= var.tablero_visible)
 
         break
     #------------------------------------------------------------------------------------------------------------#
@@ -52,7 +50,7 @@ while True:
         fun.crea_tablero_maquina()
 
         print(f"Este es tu tablero {nombre_jugador}, ¿Quieres colocar tus barcos aleatoriamente, o manualmente?")
-        print(fun.tablero)
+        print(var.tablero)
 
         while True:
             colocar_barcos_input = input(f"Aleatorio / Manual").lower()
@@ -69,11 +67,11 @@ while True:
                 print(f"No te he entendido {nombre_jugador}, escribe <Aleatorio> o <manual>")
         fun.generar_todos_los_barcos_maquina()
 
-        print(fun.tablero)
+        print(var.tablero)
 
         print(f"{nombre_jugador} Empieza el juego!")
 
-        fun.dispara_propio(tablero_maquina = fun.tablero_maquina, tablero_visible= fun.tablero_visible) #--->SUSTITUIR POR FUN DIFICIL
+        fun.dispara_propio(tablero_maquina = var.tablero_maquina, tablero_visible= var.tablero_visible) #--->SUSTITUIR POR FUN DIFICIL
         break
     #-------------------------------------------------------------------------------------------------#
     #SE REPITE EL BUCLE SI EL JUGADOR NO SABE ESCRIBIR
