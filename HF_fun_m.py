@@ -1,7 +1,6 @@
 import numpy as np
 import time
 import HF_var_m as var
-import Main_m
 
 #CREACION DEL TABLERO
 
@@ -284,7 +283,7 @@ def dispara_propio(tablero_maquina,tablero_visible):
     while juego_en_progreso:
         if turno_jugador == True:
             contador_turnos_jugador = contador_turnos_jugador +1
-            print(f'el turno actual de {Main_m.nombre_jugador}: {contador_turnos_jugador}')
+            print(f'el turno actual del jugador es: {contador_turnos_jugador}')
             if 'O' in tablero_maquina:
                 while juego_en_progreso:
 
