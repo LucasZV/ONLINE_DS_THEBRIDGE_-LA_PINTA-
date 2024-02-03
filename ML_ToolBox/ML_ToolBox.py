@@ -125,8 +125,6 @@ def get_features_num_reggresion(df,target_col, umbral_corr,pvalue=None):
             Selected_features.append(col)
     return Selected_features
 
-
-
 # Plot Features Num Regression
 def plot_features_num_regression(dataframe, target_col="", columns=[], umbral_corr=0, pvalue=None):
     """
@@ -189,8 +187,91 @@ def plot_features_num_regression(dataframe, target_col="", columns=[], umbral_co
 
     return selected_columns
 
-
 # Get Features Cat Regression
+def get_features_cat_regression(df,target_col,pvalue=0.05):
+    """
+    Descripción:
+        La función identifica las variables categóricas de un dataframe que se consideran features de una variable target en función de su correlación.
 
+    Argumentos:
+        df (Pandas Dataframe) : El DataFrame sobre el que trabajar.
+        target_col: varible objetivo (numérica continua o discreta) del df.
+        pvalue: valor que restado a 1 nos indica el intervalo de confianza para la identificación de features (cómo correlan con la vasriable target) 
+
+    Returns:
+        cat_features: lista de las variables categóricas que han sido identificadas como features.
+    """
+    umbral_card=0.5
+    if target_col not in df.columns:
+        print(f"Error: la columna {target_col} no existe.")
+        return None
+    if (target_col.dtype() not in [int,float]) or (df.nunique()/len(df)*100<umbral_card):
+        print(f"Error: la columna {target_col} no es numérica y/o su cardinalidad es inferior a {umbral_card}.")
+        return None
+    if pvalue.dtype() != float:
+        print(f"Error: la variable {pvalue} no es float.")
+        return None
+    categorical_cols = df.select_dtypes(include='object').columns.tolist()
+    cat_features = []
+    for col in categorical_cols: # Calcular la correlación y p-values para cada columna numérica con 'target_col'
+        contingency_table = pd.crosstab(df[col], df[target_col])
+        _, p_value, _, _ = chi2_contingency(contingency_table)
+        if p_value < pvalue:
+            cat_features.append(col)
+    return(cat_features)
 
 # Plot Features Cat Regression
+def plot_features_cat_regression(df,target_col="",columns=[],pvalue=0.05,with_indivudual_plot=False):
+    """
+    Descripción:
+        La función dibuja los histogramas de la variable objetivo para cada una de las features.
+
+    Argumentos:
+        df: El DataFrame sobre el que trabajar.
+        target_col: varible objetivo (numérica continua o discreta) del df.
+        columns: listado de variables categóricas. Por defecto está vacío.
+        pvalue: valor que restado a 1 nos indica el intervalo de confianza para la identificación de features (cómo correlan con la variable target). Por defecto 0.05.
+        with_individual_plot: argumento para dibujar el histograma individual o agrupado (por defecto).
+
+    Returns:
+        figure: histogramas
+    """
+    # Comprobación de los valores de entrada:
+    # variable objetivo incluída en el df (columna)
+    if target_col not in df.columns:
+        print(f"Error: la columna {target_col} no existe.")
+        return None
+    # variable objetivo numérica y con alta cardinalidad (superior al umbral deseado)
+    if (target_col.dtype() not in [int,float]) or (df.nunique()/len(df)*100<umbral_card):
+        print(f"Error: la columna {target_col} no es numérica y/o su cardinalidad es inferior a {umbral_card}.")
+        return None
+    # argumento pvalue decimal
+    if pvalue.dtype() != float:
+        print(f"Error: la variable {pvalue} no es float.")
+        return None
+    
+    # Una vez comprobados los valores de entrada, revisamos el listado de columnas:
+    # Si es una lista vacía (por defecto), se cogen las features numéricas del df y se dibujan los histogamas para la variable objetivo y cada feature numérica.
+    if columns==[]:
+        columns=selected_features
+        for feature in selected_features:
+            plt.figure(figsize=(10, 6))
+            sns.histplot(data=df, x=target_col, hue=feature, bins=20, multiple="stack")
+            plt.xlabel(target_col)
+            plt.ylabel('Frecuencia')
+            plt.title(f'Histogramas agrupados de {target_col} para features en {feature}')
+            plt.show()
+     # Si la lista viene informada, se comprueba que sean features categóricas del df y se dibujan los histogamas para la variable objetivo y cada feature categórica.
+    else:
+        cat_features_hist=[]
+        for col in columns:
+            if col in cat_features
+                cat_features_hist.append(col)
+        for feature in cat_features_hist:
+            plt.figure(figsize=(10, 6))
+            sns.countplot(data=df, x=feature, hue=target_col)
+            plt.xlabel(feature)
+            plt.ylabel('Conteo')
+            plt.title(f'Gráfico de barras agrupado para {target_col} en función de {feature}')
+            plt.legend(title=target_col)
+            plt.show()
