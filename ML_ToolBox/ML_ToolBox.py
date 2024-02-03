@@ -1,4 +1,8 @@
 import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.stats import pearsonr, chi2_contingency
 
 # Describe_df 
 
@@ -83,8 +87,7 @@ def tipifica_variables(df, umbral_cat, umbral_con):
 
 # Get Features Num Regression
 def get_features_num_reggresion(df,target_col, umbral_corr,pvalue=None):
-    if target_col not in df.columns:
-        """
+    """
     get_features_num_regresion: selecciona las características numéricas para un problema de regrersión. 
     Esta función verifica que los datos sean adecuados y automáticamente selecciona las columnas numéricas que
     están más relacionadas con la que estamos tratando. Sirve para hacer predicciones más precisas.
@@ -98,19 +101,21 @@ def get_features_num_reggresion(df,target_col, umbral_corr,pvalue=None):
     Retorna:
     - selected_features (list): Lista de características seleccionadas que cumplen con los criterios.
     """  
-    
+    if target_col not in df.columns:
+        print(f"Error: La columna '{target_col}' no esta en el dataframe")
+
     if not np.issubdtype(df[target_col].dtype, np.number):# Comprobar que la columna objetivo es una variable numérica continua
         print(f"Error: La columna '{target_col}' no es una variable numérica continua.")
         return None
-    
+        
     if not (0 <= umbral_corr <= 1): # Comprobar que el umbral de correlación está entre 0 y 1
         print("Error: umbral_corr debe estar entre 0 y 1")
         return None 
-    
+        
     if pvalue is not None and not (0 <= pvalue <= 1):# Comprobar que pvalue es None o un número entre 0 y 1
         print("Error: pvalue debe ser None o un número entre 0 y 1.")
         return None
-    
+        
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()  # Obtener columnas numéricas del DataFrame
 
     Correlations = []  # Calcular la correlación y p-values para cada columna numérica con 'target_col'
@@ -119,11 +124,11 @@ def get_features_num_reggresion(df,target_col, umbral_corr,pvalue=None):
             correlation, p_value = pearsonr(df[col], df[target_col])
             Correlations.append((col, correlation, p_value))
 
-    Selected_features = []  # Filtrar las columnas basadas en el umbral de correlación y p-value
+    selected_features = []  # Filtrar las columnas basadas en el umbral de correlación y p-value
     for col, corr, p_value in Correlations:
         if abs(corr) > umbral_corr and (pvalue is None or p_value <= (1 - pvalue)):
-            Selected_features.append(col)
-    return Selected_features
+            selected_features.append(col)
+    return selected_features
 
 # Plot Features Num Regression
 def plot_features_num_regression(dataframe, target_col="", columns=[], umbral_corr=0, pvalue=None):
@@ -188,7 +193,7 @@ def plot_features_num_regression(dataframe, target_col="", columns=[], umbral_co
     return selected_columns
 
 # Get Features Cat Regression
-def get_features_cat_regression(df,target_col,pvalue=0.05):
+def get_features_cat_regression(df,target_col,pvalue=0.05,umbral_card=0.5):
     """
     Descripción:
         La función identifica las variables categóricas de un dataframe que se consideran features de una variable target en función de su correlación.
@@ -197,6 +202,7 @@ def get_features_cat_regression(df,target_col,pvalue=0.05):
         df (Pandas Dataframe) : El DataFrame sobre el que trabajar.
         target_col: varible objetivo (numérica continua o discreta) del df.
         pvalue: valor que restado a 1 nos indica el intervalo de confianza para la identificación de features (cómo correlan con la vasriable target) 
+        umbral_card: umbral de cardinalidad.
 
     Returns:
         cat_features: lista de las variables categóricas que han sido identificadas como features.
@@ -205,9 +211,15 @@ def get_features_cat_regression(df,target_col,pvalue=0.05):
     if target_col not in df.columns:
         print(f"Error: la columna {target_col} no existe.")
         return None
-    if (target_col.dtype() not in [int,float]) or (df.nunique()/len(df)*100<umbral_card):
+    # martin
+    if not np.issubdtype(df[target_col].dtype, np.number) or ((df.nunique()/len(df)*100) < umbral_card):
         print(f"Error: la columna {target_col} no es numérica y/o su cardinalidad es inferior a {umbral_card}.")
         return None
+    
+    """ if target_col.dtype() not in [int,float] or ((df.nunique()/len(df)*100) < umbral_card):
+        print(f"Error: la columna {target_col} no es numérica y/o su cardinalidad es inferior a {umbral_card}.")
+        return None """
+    
     if pvalue.dtype() != float:
         print(f"Error: la variable {pvalue} no es float.")
         return None
@@ -221,7 +233,7 @@ def get_features_cat_regression(df,target_col,pvalue=0.05):
     return(cat_features)
 
 # Plot Features Cat Regression
-def plot_features_cat_regression(df,target_col="",columns=[],pvalue=0.05,with_indivudual_plot=False):
+def plot_features_cat_regression(df,target_col="",columns=[],pvalue=0.05,with_individual_plot=False, umbral_card=0.5):
     """
     Descripción:
         La función dibuja los histogramas de la variable objetivo para cada una de las features.
@@ -232,10 +244,14 @@ def plot_features_cat_regression(df,target_col="",columns=[],pvalue=0.05,with_in
         columns: listado de variables categóricas. Por defecto está vacío.
         pvalue: valor que restado a 1 nos indica el intervalo de confianza para la identificación de features (cómo correlan con la variable target). Por defecto 0.05.
         with_individual_plot: argumento para dibujar el histograma individual o agrupado (por defecto).
+        umbral_card: umbral de cardinalidad.
 
     Returns:
         figure: histogramas
     """
+
+    selected_features=get_features_num_reggresion(df,target_col, umbral_corr=0.5)
+    cat_features=get_features_cat_regression(df,target_col,pvalue=0.05,umbral_card=0.5)
     # Comprobación de los valores de entrada:
     # variable objetivo incluída en el df (columna)
     if target_col not in df.columns:
@@ -265,7 +281,7 @@ def plot_features_cat_regression(df,target_col="",columns=[],pvalue=0.05,with_in
     else:
         cat_features_hist=[]
         for col in columns:
-            if col in cat_features
+            if col in cat_features:
                 cat_features_hist.append(col)
         for feature in cat_features_hist:
             plt.figure(figsize=(10, 6))
