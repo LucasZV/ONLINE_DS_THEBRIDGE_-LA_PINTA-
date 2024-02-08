@@ -6,7 +6,7 @@ from scipy.stats import pearsonr, chi2_contingency
 
 # Describe_df 
 
-def describe_df(df):
+def describe_df(df : pd.DataFrame):
     """
     Descripción:
         Esta función dá información sobre un DataFrame
@@ -17,17 +17,24 @@ def describe_df(df):
     Returns:
         Pandas Dataframe : Un nuevo DataFrame con las columnas del DataFrame original, el tipo de datos de cada columna, su porcentaje de nulos o misings, sus valores únicos y su porcentaje de cardinalidad.
     """
+    #Comprobar que el dataframe pasado es un dataframe
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("El argumento 'df' debe ser un Dataframe de Pandas.")
+    
+    # Filtrar valores 'unk' y 'unknown' para el cálculo de tipos de datos
+    df_filtered = df.replace(['UNK',"unk", "-", "unknow", "unknown" "missing", "nan", "NaN"], np.nan)
+
     # Columnas
     columns_names = df.columns.tolist()
 
     # Tipo de datos
-    data_type = df.dtypes
+    data_type =  df_filtered.apply(lambda x: x.dropna().dtype)
 
     # Porcentaje de nulos/missings
-    missings = (df.isnull().mean() * 100).round(2)
+    missings = ((df_filtered.isnull() | df_filtered.isin(['unknown', "unknow", 'unk', "UNK", '-', 'missing', "NaN", "NAN", "nan"]) | df_filtered.isna()).mean() * 100).round(2)
     
     # Valores únicos:
-    unique_values = df.nunique()
+    unique_values = df_filtered.nunique()
 
     # Cardinalidad:
     card = (unique_values / len(df) * 100).round(2)
@@ -47,24 +54,31 @@ def describe_df(df):
 
 # Tipificar variables:
 
-def tipifica_variables(df, umbral_cat, umbral_con):
+def tipifica_variables(df, umbral_cat : int, umbral_con : float):
     """
     Descripción:
-    Esta función tipifica las diferentes columnas de un DF según su porcentaje de cardinalidad.
+    Esta función tipifica las diferentes columnas de un DF según su cardinalidad.
 
     Argumentos:
         df (Pandas Dataframe): Dataframe que quieras tipificar sus columnas.
-        umbral_cat (INT): Porcentaje de cardinalidad para que el tipo sea considerado categórico.
-        umbral_con (FLOAT): Porcentaje de cardinalidad para que el tipo pase de númerico discreto a numérico continuo.
+        umbral_cat (INT): Cardinalidad para que el tipo sea considerado categórico.
+        umbral_con (FLOAT): Cardinalidad para que el tipo pase de númerico discreto a numérico continuo.
 
     Returns:
         Pandas Dataframe: Un Dataframe cuyas filas son las columnas del DataFrame original que devuelve en una nueva columna el tipo de variable según los umbrales escogidos
     """
+    # Validar los tipos de los argumentos
+
+    if not isinstance(umbral_cat, int):
+        raise ValueError("El umbral para variables categóricas (umbral_cat) debe ser un INT.")
+    if not isinstance(umbral_con, float):
+        raise ValueError("El umbral para variables continuas (umbral_con) debe ser un FLOAT.")
+
     tipo_variable = []
 
     # Cardinalidad de las columnas:
     for col in df.columns:
-        card = (df[col].nunique() / len(df) * 100)
+        card = df[col].nunique()
 
         # Sugerencias de tipo:
         if card == 2:
