@@ -54,7 +54,7 @@ def describe_df(df : pd.DataFrame):
 
 # Tipificar variables:
 
-def tipifica_variables(df, umbral_cat : int, umbral_con : float):
+def tipifica_variables(df, umbral_cat: int, umbral_con: float):
     """
     Descripción:
     Esta función tipifica las diferentes columnas de un DF según su cardinalidad.
@@ -62,13 +62,12 @@ def tipifica_variables(df, umbral_cat : int, umbral_con : float):
     Argumentos:
         df (Pandas Dataframe): Dataframe que quieras tipificar sus columnas.
         umbral_cat (INT): Cardinalidad para que el tipo sea considerado categórico.
-        umbral_con (FLOAT): Cardinalidad para que el tipo pase de númerico discreto a numérico continuo.
+        umbral_con (FLOAT): Cardinalidad para que el tipo pase de numérico discreto a numérico continuo.
 
     Returns:
         Pandas Dataframe: Un Dataframe cuyas filas son las columnas del DataFrame original que devuelve en una nueva columna el tipo de variable según los umbrales escogidos
     """
     # Validar los tipos de los argumentos
-
     if not isinstance(umbral_cat, int):
         raise ValueError("El umbral para variables categóricas (umbral_cat) debe ser un INT.")
     if not isinstance(umbral_con, float):
@@ -78,26 +77,34 @@ def tipifica_variables(df, umbral_cat : int, umbral_con : float):
 
     # Cardinalidad de las columnas:
     for col in df.columns:
-        card = df[col].nunique()
+        # Verificar si la columna es numérica
+        if pd.api.types.is_numeric_dtype(df[col]):
+            card = df[col].nunique()
 
-        # Sugerencias de tipo:
-        if card == 2:
-            tipo = "Binaria"
-        elif card < umbral_cat:
-            tipo = "Categorica"
-        elif card >= umbral_con:
-            tipo = "Numerica Continua"
-        else: tipo = "Numerica Discreta"
+            # Sugerencias de tipo:
+            if card == 2:
+                tipo = "Binaria"
+            elif card < umbral_cat:
+                tipo = "Categórica"
+            elif card >= umbral_con:
+                tipo = "Numérica Continua"
+            else:
+                tipo = "Numérica Discreta"
 
-        tipo_variable.append({
-            "Variable" : col,
-            "Tipo" : tipo
-        })
+            tipo_variable.append({
+                "Variable": col,
+                "Tipo": tipo
+            })
+        else:
+            print(f"La columna {col} no es numérica.")
 
-        # Nuevo DF:
+    # Nuevo DF:
     df_type = pd.DataFrame(tipo_variable)
 
     return df_type
+
+# Ejemplo de uso:
+# result = tipifica_variables(df, umbral_cat=5, umbral_con=10.0)
 
 # Get Features Num Regression
 def get_features_num_reggresion(df,target_col, umbral_corr,pvalue=None):
