@@ -317,7 +317,8 @@ def plot_features_cat_regression(df,target_col="",columns=[],umbral_card=0.5,pva
         for col in columns_in_df:
             if col in cat_features:
                 plt.figure(figsize=(10, 6))
-                sns.histplot(data=df, x=target_col, hue=col, palette='Set1', multiple='stack')
+                for valor in df[col].unique():
+                    sns.histplot(df[df[col] == valor][target_col], kde= True, label  = str(valor))
                 plt.title(f'Histograma de {col} en relación con {target_col}')
                 plt.xlabel(target_col)
                 plt.ylabel('Frecuencia')
