@@ -4,6 +4,24 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, chi2_contingency
 
+# Importo librerias
+import pandas as pd
+import ML_ToolBox as tbox
+import numpy as np
+import seaborn as sns
+from sklearn.compose import ColumnTransformer
+import pandas as pd
+import numpy as np
+from collections import Counter
+from sklearn.feature_selection import SelectKBest, f_classif, RFE
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import SequentialFeatureSelector
+from sklearn.preprocessing import LabelEncoder
+from scipy import stats
+from scipy.stats import pearsonr, chi2_contingency
+from sklearn.feature_selection import SelectFromModel
+
 # Describe_df 
 
 def describe_df(df : pd.DataFrame):
@@ -324,3 +342,208 @@ def plot_features_cat_regression(df,target_col="",columns=[],umbral_card=0.5,pva
                 plt.ylabel('Frecuencia')
                 plt.legend(title=col)
                 plt.show()
+
+
+def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
+    """
+    Función para realizar la selección de características en un conjunto de datos.
+
+    Parámetros:
+    - dataset (pd.DataFrame): El conjunto de datos de entrada.
+    - target_col (str): El nombre de la columna objetivo. Debe ser una columna válida en el dataframe. Si es una cadena vacía, se omite.
+    - selectores (dict): Un diccionario que especifica los métodos de selección de características a aplicar y sus parámetros. Las claves pueden ser "KBest", "FromModel", "RFE" o "SFS".
+    - hard_voting (list): Una lista de características para incluir. Si está vacía, se omite.
+
+    Retorna:
+    - dict: Un diccionario que contiene las listas de características seleccionadas para cada método en selectores y una lista adicional para el hard voting.
+
+    # Ejemplo de uso
+    selectores_ejemplo = {
+        "KBest": 5,
+        "FromModel": [RandomForestClassifier(), 5],
+        "RFE": [LogisticRegression(), 5, 1],
+        "SFS": [RandomForestClassifier(), 3]
+    }
+
+    # Seleccionar características usando super_selector
+    resultado_ejemplo = super_selector(train_set_titanic, target_col="Survived", selectores=selectores_ejemplo, hard_voting=["Pclass", "who", "embarked_S", "fare", "age"])
+
+    # Imprimir el resultado
+    print("Resultado del ejemplo:")
+    for key, value in resultado_ejemplo.items():
+        print(f"{key}: {value}")
+    """
+    result_dict = {}
+    
+    # Verificar si target_col es válido
+    if target_col and target_col not in dataset.columns:
+        raise ValueError(f"'{target_col}' no es una columna válida en el dataframe.")
+    
+    # Obtener las columnas no numéricas
+    columnas_no_numericas = dataset.select_dtypes(exclude=['int', 'float']).columns.tolist()
+    
+    # Iterar sobre cada columna no numérica y transformarla usando LabelEncoder
+    # Crear una instancia de LabelEncoder
+    label_encoder = LabelEncoder()
+    for col in columnas_no_numericas:
+        dataset[col] = label_encoder.fit_transform(dataset[col])
+
+    ## Obtener todas las columnas numéricas y la columna objetivo
+    numeric_columns = dataset.select_dtypes(include=[np.number]).columns.tolist()
+
+    # Excluir la columna objetivo si está presente en las columnas numéricas
+    if target_col in numeric_columns:
+        numeric_columns.remove(target_col)
+
+    selected_features = numeric_columns
+
+    # Comprobar selectores
+    if not selectores or selectores is None:
+        # Si no hay selectores
+        selected_features = [col for col in dataset.columns if
+                            len(dataset[col].unique()) != 1 and # cardinalidad distinta de 1
+                            (len(dataset[col].unique()) / len(dataset)) * 100 != 100] # Cardinalidad distinta del 100%, no índices
+        selected_features.remove(target_col)
+        result_dict["default"] = selected_features
+
+    # Aplicar selectores      
+    else:
+        for key, value in selectores.items():
+
+            if key == "KBest":
+
+                kbest_selector = SelectKBest(f_classif, k=value)
+                kbest_selector.fit(dataset[numeric_columns], dataset[target_col])
+                kbest_features = list(np.array(numeric_columns)[kbest_selector.get_support()])
+                result_dict["KBest"] = kbest_features
+
+            elif key == "FromModel":
+                if len(value) >= 2:
+                    model, threshold = value[0], value[1]
+                    if isinstance(threshold, int) and threshold > len(numeric_columns):
+                        raise ValueError(f"El umbral no puede ser mayor que el número total de columnas numéricas. --> {len(numeric_columns)}")
+                    # Verificar si threshold es válido
+                    # Si threshold es median o mean:
+                    elif isinstance(threshold, str) and threshold.lower() in ['median', 'mean']: # Calcular el umbral basado en la mediana o la media de las importancias
+                        if hasattr(model, 'feature_importances_'):
+                            importances = model.feature_importances_
+                            if threshold.lower() == 'median':
+                                threshold = np.median(importances)
+                            elif threshold.lower() == 'mean':
+                                threshold = np.mean(importances)
+                            else:
+                                raise ValueError(f"Valor no válido para 'threshold': {threshold}")
+                        else:
+                            # Utilizar get_support() si no hay feature_importances_
+                            model.fit(dataset[numeric_columns], dataset[target_col])  # Ajustar el modelo
+                            sfm_selector = SelectFromModel(model, threshold=threshold)
+                            sfm_selector.fit(dataset[numeric_columns], dataset[target_col])
+                            sfm_features = numeric_columns.copy()
+                            sfm_features = list(np.array(sfm_features)[sfm_selector.get_support()])
+                            result_dict["FromModel"] = sfm_features
+                    # Si es un escalar por median o mean:
+                    elif isinstance(threshold, str) and '*' in threshold: # Manejar el caso con un factor de escala
+                        scaling_factor = float(threshold.split('*')[0])
+                        base_threshold = threshold.split('*')[1].lower()
+                        if hasattr(model, 'feature_importances_'):
+                            importances = model.feature_importances_
+                            if base_threshold == 'mean':
+                                threshold = scaling_factor * np.mean(importances)
+                            elif base_threshold == 'median':
+                                threshold = scaling_factor * np.median(importances)
+                            else:
+                                raise ValueError(f"Valor no válido para 'threshold': {threshold}")
+                        else:
+                            # Utilizar get_support() si no hay feature_importances_
+                            model.fit(dataset[numeric_columns], dataset[target_col])  # Ajustar el modelo
+                            sfm_selector = SelectFromModel(model, threshold=threshold)
+                            sfm_selector.fit(dataset[numeric_columns], dataset[target_col])
+                            sfm_features = numeric_columns.copy()
+                            sfm_features = list(np.array(sfm_features)[sfm_selector.get_support()])
+                            result_dict["FromModel"] = sfm_features
+                    elif not isinstance(threshold, (int, float)):
+                        raise ValueError(f"'threshold' debe ser un número, 'median', 'mean' o una cadena que siga el formato 'factor*mean', pero se proporcionó: {threshold}")
+                    # Si es entero:
+                    elif isinstance(threshold, int):
+                        model.fit(dataset[numeric_columns], dataset[target_col])  # Ajustar el modelo
+                        sfm_selector = SelectFromModel(model, max_features=threshold, threshold=-np.inf)
+                    # Si es float:
+                    elif isinstance(threshold, (float, float)):
+                        model.fit(dataset[numeric_columns], dataset[target_col])  # Ajustar el modelo
+                        sfm_selector = SelectFromModel(model, threshold=threshold)
+                    else:
+                        raise ValueError(f"'threshold' debe ser un entero o un valor compatible con SelectFromModel, pero se proporcionó: {threshold}")
+                else:
+                    raise ValueError("La lista de 'FromModel' debe contener al menos dos elementos: el modelo y el umbral.")
+    
+                sfm_selector.fit(dataset[numeric_columns], dataset[target_col])
+                sfm_features = numeric_columns.copy()
+                sfm_features = list(np.array(sfm_features)[sfm_selector.get_support()])
+                result_dict["FromModel"] = sfm_features
+
+ 
+            elif key == "RFE":
+                model, n_features_to_select, step = value[0], value[1], value[2]
+                # Verificar si n_features_to_select es válido
+                # Verificar si n_features es None:
+                if n_features_to_select is None:
+                    n_features_to_select = len(numeric_columns) // 2  # Si es None, seleccionar la mitad de las características
+                # Verificar si n_features es entero:
+                elif isinstance(n_features_to_select, int):
+                    n_features_value = n_features_to_select
+                # Verificar si n_features es float:
+                elif isinstance(n_features_to_select, (float, float)) and 0 <= n_features_to_select <= 1:
+                    n_features_value = int(n_features_to_select * len(numeric_columns))
+                else:
+                    raise ValueError(f"'n_features_to_select' debe ser un entero, un float entre 0 y 1, o None, pero se proporcionó: {n_features_to_select}")
+                # Verificar si step es válido
+                # Verifica si step es int:
+                if isinstance(step, int) and step >= 1:
+                    step_value = step
+                # Verifica si step es float:
+                elif isinstance(step, (float, float)) and 0 < step < 1:
+                    step_value = int(step * len(numeric_columns))
+                else:
+                    raise ValueError(f"'step' debe ser un entero >= 1 o un float entre 0 y 1, pero se proporcionó: {step}")
+                rfe_selector = RFE(model, n_features_to_select=n_features_to_select, step=step_value)
+                rfe_selector.fit(dataset[numeric_columns], dataset[target_col])
+                rfe_features = numeric_columns.copy()
+                rfe_features = list(np.array(rfe_features)[rfe_selector.support_])
+                result_dict["RFE"] = rfe_features
+
+            elif key == "SFS":
+                model, n_features = value[0], value[1]
+                # Verificar si n_features es válido
+                if n_features == "auto":
+                    n_features_value = len(numeric_columns) // 2  # Mitad del número total de características
+                elif isinstance(n_features, int):
+                    n_features_value = n_features
+                elif isinstance(n_features, (float, float)) and 0 <= n_features <= 1:
+                    n_features_value = int(n_features * len(numeric_columns))
+                else:
+                    raise ValueError(f"'n_features' debe ser 'auto', un entero o un float entre 0 y 1, pero se proporcionó: {n_features}")
+                
+                sfs_selector = SequentialFeatureSelector(model, n_features_to_select=n_features_value, direction="forward")
+                sfs_selector.fit(dataset[numeric_columns], dataset[target_col])
+                sfs_features = numeric_columns.copy()
+                if hasattr(sfs_selector, 'k_feature_names_'):
+                    sfs_features = list(sfs_selector.k_feature_names_)
+                elif hasattr(sfs_selector, 'support_'):
+                    sfs_features = list(np.array(numeric_columns)[sfs_selector.support_])
+                result_dict["SFS"] = sfs_features
+    # Hard Voting
+    # Obtener todas las características seleccionadas
+    all_selected_features = [result_dict[key] for key in result_dict]
+    all_selected_features += [hard_voting] if hard_voting else []
+
+    # Verificar si hay al menos una matriz para concatenar
+    if all_selected_features:
+        # Realizar la concatenación y realizar el hard voting
+        voting_result = [feature for feature, count in Counter(np.concatenate(all_selected_features)).items() if count >= len(all_selected_features) // 2]
+    else:
+        # Si no hay características seleccionadas, asignar una lista vacía a voting_result
+        voting_result = []
+
+    result_dict["hard_voting"] = voting_result
+
+    return result_dict

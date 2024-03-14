@@ -7,6 +7,7 @@ from scipy import stats
 from sklearn.feature_selection import SelectKBest, SelectFromModel, RFE, SequentialFeatureSelector
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
 
 
 def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
@@ -43,6 +44,13 @@ def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
     # Verificar si target_col es válido
     if target_col and target_col not in dataset.columns:
         raise ValueError(f"'{target_col}' no es una columna válida en el dataframe.")
+
+    categorical_columns = dataset.select_dtypes(include=['object', 'category']).columns
+
+    # Convertir las columnas categóricas a valores numéricos
+    label_encoder = LabelEncoder()
+    for col in categorical_columns:
+        dataset[col] = label_encoder.fit_transform(dataset[col])
 
     # Crear lista de todas las columnas excluyendo target_col
     all_features = [col for col in dataset.columns if col != target_col]
