@@ -541,7 +541,7 @@ def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
     # Verificar si hay al menos una matriz para concatenar
     if all_selected_features:
         # Realizar la concatenación y realizar el hard voting
-        voting_result = [feature for feature, count in Counter(np.concatenate(all_selected_features)).items() if count >= len(all_selected_features) // 2]
+        voting_result = [feature for feature, count in Counter(np.concatenate(all_selected_features)).items() if count >= len(all_selected_features) // len(result_dict)]
     else:
         # Si no hay características seleccionadas, asignar una lista vacía a voting_result
         voting_result = []
