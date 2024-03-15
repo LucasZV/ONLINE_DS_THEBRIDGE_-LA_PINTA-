@@ -3,6 +3,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, chi2_contingency
+from scipy.stats import f_oneway
 
 # Importo librerias
 import pandas as pd
@@ -547,3 +548,131 @@ def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
     result_dict["hard_voting"] = voting_result
 
     return result_dict
+
+def get_features_num_classification(df, target_col, pvalue= 0.05):
+    """
+    get_features_num_regresion: selecciona las características numéricas para un problema de clasificación. 
+    Esta función verifica que los datos sean adecuados y automáticamente selecciona las columnas numéricas que
+    están más relacionadas con la que estamos tratando. Sirve para hacer predicciones más precisas.
+
+    Argumentos:
+        - df (DataFrame): El conjunto de datos.
+        - target_col (str): El nombre de la columna objetivo que queremos predecir.
+        - pvalue (float): Umbral de significación estadística (entre 0 y 1) para el test de correlación. Por defecto, 0.05.
+
+    Retorna:
+    - selected_features (list): Lista de características seleccionadas que cumplen con los criterios.
+    """  
+    # Comprobación de que df es un DataFrame válido
+    if not isinstance(df, pd.DataFrame):
+        print("Error: El parámetro 'df' debe ser un DataFrame válido.")
+        return None
+   
+    # Comprobación de la existencia de la columna objetivo en el DataFrame    
+    if target_col not in df.columns:
+        print(f'Error: La columna "{target_col}" no está en el DataFrame')
+        return None
+
+    if not (np.issubdtype(df[target_col].dtype, np.number) or len(df[target_col].unique()) < 10):
+        print(f"Error: La columna '{target_col}' no es una variable categórica o numérica discreta de baja cardinalidad.")
+        return None
+
+    # Comprobación del valor de pvalue
+    if not (0 <= pvalue <= 1):
+        print("Error: pvalue debe ser un número entre 0 y 1.")
+        return None
+
+    # Obtener columnas numéricas del DataFrame
+    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()  
+
+    # Realizar test de ANOVA y seleccionar las features basadas en el p-value
+    selected_features = []  
+
+    for col in numeric_cols:
+        if col != target_col:
+            p_val = f_oneway(df[col][df[target_col] == 0], df[col][df[target_col] == 1]).pvalue
+            if p_val <= pvalue:
+                selected_features.append(col)
+
+    # Si no hay features con el pvalue dado
+    if not selected_features:
+            print("No hay características seleccionadas con el umbral de p-value dado.")
+            return None   
+
+    return selected_features
+
+    #ejemplo de uso
+    # get_features_num_classification(df, 'target_column')
+
+def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05):
+    """
+    Función que genera pairplots de características numéricas en función de la columna objetivo para un problema de clasificación.
+    
+    Argumentos:
+     - df (DataFrame): El conjunto de datos.
+     - target_col (str, opcional): El nombre de la columna objetivo que queremos predecir. Por defecto, "".
+     - columns (list, opcional): Lista de nombres de columnas a considerar. Por defecto, [].
+     - pvalue (float, opcional): Umbral de significación estadística (entre 0 y 1) para el test de ANOVA. Por defecto, 0.05.
+
+    Retorna:
+    - selected_columns (list): Lista de columnas seleccionadas que cumplen con los criterios.
+    """
+    # Comprobación de que df es un DataFrame válido
+    if not isinstance(df, pd.DataFrame):
+        print("Error: El parámetro 'df' debe ser un DataFrame válido.")
+        return None
+    
+    # Comprobación de la existencia de la columna objetivo en el DataFrame
+    if target_col not in df.columns:
+        print(f"Error: La columna '{target_col}' no está en el DataFrame.")
+        return None
+    
+    # Comprobación del tipo y la cantidad de valores únicos de la columna objetivo para decidir si usar diferentes pairplots
+    unique_values = df[target_col].nunique()
+    if unique_values > 5:
+        use_multiple_pairplots = True
+    else:
+        use_multiple_pairplots = False
+    
+    # Comprobación de si la lista de columnas está vacía
+    if not columns:
+        # Si la lista de columnas está vacía, seleccionar todas las columnas numéricas del DataFrame
+        columns = df.select_dtypes(include=np.number).columns.tolist()
+    
+    selected_columns = []  
+    
+    # Realizar el test ANOVA y seleccionar las columnas basadas en el p-value
+    for col in columns:
+        if col != target_col:
+            p_val = f_oneway(df[col][df[target_col] == 0], df[col][df[target_col] == 1]).pvalue
+            if p_val <= pvalue:
+                selected_columns.append(col)
+    
+    # Verificar si no se encontraron columnas que cumplan con los criterios
+    if not selected_columns:
+        print("No hay columnas seleccionadas con el umbral de p-value dado.")
+        return None
+    
+    # Si hay más de 5 columnas seleccionadas, dividirlas en grupos de máximo 5
+    if len(selected_columns) > 5:
+        column_groups = [selected_columns[i:i+4] for i in range(0, len(selected_columns), 4)]
+    else:
+        column_groups = [selected_columns]
+    
+    # Generar los pairplots
+    for group in column_groups:
+        if use_multiple_pairplots:
+            for value in df[target_col].unique():
+                plt.figure(figsize=(15, 5))
+                sns.pairplot(df[df[target_col] == value], hue=target_col, vars=group)
+                plt.show()
+        else:
+            plt.figure(figsize=(15, 5))
+            sns.pairplot(df, hue=target_col, vars=group)
+            plt.show();
+
+    return selected_columns
+
+# Ejemplo de uso
+# selected_columns = plot_features_num_classification(df, target_col='target_column')
+# print(selected_columns)
