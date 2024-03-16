@@ -695,9 +695,12 @@ def get_features_cat_classification(df, target_col, normalize=False, mi_threshol
 
     """
 
-    # Comprobar que 'target_col' es una variable categórica del dataframe
-    if target_col not in df.columns or df[target_col].dtype.name not in ['object', 'category']:
-        print(f"Error: '{target_col}' no es una variable categórica en el dataframe.")
+    if target_col not in df.columns:
+        print(f'Error: La columna "{target_col}" no está en el DataFrame')
+        return None
+
+    if not (np.issubdtype(df[target_col].dtype, np.number) or len(df[target_col].unique()) < 10):
+        print(f"Error: La columna '{target_col}' no es una variable categórica o numérica discreta de baja cardinalidad.")
         return None
     
     # Obtener las columnas categóricas
@@ -747,16 +750,19 @@ def plot_features_cat_classification(df, target_col="", columns=[], mi_threshold
 
     """
     # Comprobar que 'target_col' es una variable categórica del dataframe
-    if target_col not in df.columns or df[target_col].dtype.name not in ['object', 'category']:
-        print(f"Error: '{target_col}' no es una variable categórica en el dataframe.")
+    if target_col not in df.columns:
+        print(f'Error: La columna "{target_col}" no está en el DataFrame')
         return None
-    
+
+    if not (np.issubdtype(df[target_col].dtype, np.number) or len(df[target_col].unique()) < 10):
+        print(f"Error: La columna '{target_col}' no es una variable categórica o numérica discreta de baja cardinalidad.")
+        return None
     # Si la lista de columnas está vacía, seleccionar todas las variables categóricas del dataframe
     if not columns:
         columns = df.select_dtypes(include=['object', 'category']).columns
     
     # Seleccionar columnas que cumplen con el umbral de mutual information
-    selected_columns = select_categorical_features(df, target_col, normalize, mi_threshold)
+    selected_columns = get_features_cat_classification(df, target_col, normalize, mi_threshold)
     selected_columns = [col for col in selected_columns if col in columns]
 
     # Comprobar si no se seleccionaron columnas
