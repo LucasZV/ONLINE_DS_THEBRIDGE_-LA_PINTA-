@@ -22,6 +22,8 @@ from sklearn.preprocessing import LabelEncoder
 from scipy import stats
 from scipy.stats import pearsonr, chi2_contingency
 from sklearn.feature_selection import SelectFromModel
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.metrics import mean_squared_error, mean_absolute_error, accuracy_score, precision_score, recall_score, classification_report, confusion_matrix, mean_absolute_percentage_error
 
 # Describe_df 
 
@@ -345,6 +347,7 @@ def plot_features_cat_regression(df,target_col="",columns=[],umbral_card=0.5,pva
                 plt.show()
 
 
+
 def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
     """
     Función para realizar la selección de características en un conjunto de datos.
@@ -540,7 +543,7 @@ def super_selector(dataset, target_col="", selectores=None, hard_voting=[]):
     # Verificar si hay al menos una matriz para concatenar
     if all_selected_features:
         # Realizar la concatenación y realizar el hard voting
-        voting_result = [feature for feature, count in Counter(np.concatenate(all_selected_features)).items() if count >= len(all_selected_features) // 2]
+        voting_result = [feature for feature, count in Counter(np.concatenate(all_selected_features)).items() if count >= len(all_selected_features) // len(result_dict)]
     else:
         # Si no hay características seleccionadas, asignar una lista vacía a voting_result
         voting_result = []
@@ -563,17 +566,18 @@ def get_features_num_classification(df, target_col, pvalue= 0.05):
     Retorna:
     - selected_features (list): Lista de características seleccionadas que cumplen con los criterios.
     """  
+    DF = df.copy()
     # Comprobación de que df es un DataFrame válido
-    if not isinstance(df, pd.DataFrame):
+    if not isinstance(DF, pd.DataFrame):
         print("Error: El parámetro 'df' debe ser un DataFrame válido.")
         return None
    
     # Comprobación de la existencia de la columna objetivo en el DataFrame    
-    if target_col not in df.columns:
+    if target_col not in DF.columns:
         print(f'Error: La columna "{target_col}" no está en el DataFrame')
         return None
 
-    if not (np.issubdtype(df[target_col].dtype, np.number) or len(df[target_col].unique()) < 10):
+    if not (np.issubdtype(DF[target_col].dtype, np.number) or len(DF[target_col].unique()) < 10):
         print(f"Error: La columna '{target_col}' no es una variable categórica o numérica discreta de baja cardinalidad.")
         return None
 
@@ -583,14 +587,13 @@ def get_features_num_classification(df, target_col, pvalue= 0.05):
         return None
 
     # Obtener columnas numéricas del DataFrame
-    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()  
-
+    numeric_cols = DF.select_dtypes(include=np.number).columns.tolist()  
     # Realizar test de ANOVA y seleccionar las features basadas en el p-value
     selected_features = []  
 
     for col in numeric_cols:
         if col != target_col:
-            p_val = f_oneway(df[col][df[target_col] == 0], df[col][df[target_col] == 1]).pvalue
+            p_val = f_oneway(DF[col][DF[target_col] == 0], DF[col][DF[target_col] == 1]).pvalue
             if p_val <= pvalue:
                 selected_features.append(col)
 
@@ -617,18 +620,19 @@ def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05)
     Retorna:
     - selected_columns (list): Lista de columnas seleccionadas que cumplen con los criterios.
     """
+    DF = df.copy()
     # Comprobación de que df es un DataFrame válido
     if not isinstance(df, pd.DataFrame):
         print("Error: El parámetro 'df' debe ser un DataFrame válido.")
         return None
     
     # Comprobación de la existencia de la columna objetivo en el DataFrame
-    if target_col not in df.columns:
+    if target_col not in DF.columns:
         print(f"Error: La columna '{target_col}' no está en el DataFrame.")
         return None
     
     # Comprobación del tipo y la cantidad de valores únicos de la columna objetivo para decidir si usar diferentes pairplots
-    unique_values = df[target_col].nunique()
+    unique_values = DF[target_col].nunique()
     if unique_values > 5:
         use_multiple_pairplots = True
     else:
@@ -637,14 +641,14 @@ def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05)
     # Comprobación de si la lista de columnas está vacía
     if not columns:
         # Si la lista de columnas está vacía, seleccionar todas las columnas numéricas del DataFrame
-        columns = df.select_dtypes(include=np.number).columns.tolist()
+        columns = DF.select_dtypes(include=np.number).columns.tolist()
     
     selected_columns = []  
     
     # Realizar el test ANOVA y seleccionar las columnas basadas en el p-value
     for col in columns:
         if col != target_col:
-            p_val = f_oneway(df[col][df[target_col] == 0], df[col][df[target_col] == 1]).pvalue
+            p_val = f_oneway(DF[col][DF[target_col] == 0], DF[col][DF[target_col] == 1]).pvalue
             if p_val <= pvalue:
                 selected_columns.append(col)
     
@@ -664,11 +668,11 @@ def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05)
         if use_multiple_pairplots:
             for value in df[target_col].unique():
                 plt.figure(figsize=(15, 5))
-                sns.pairplot(df[df[target_col] == value], hue=target_col, vars=group)
+                sns.pairplot(DF[DF[target_col] == value], hue=target_col, vars=group)
                 plt.show()
         else:
             plt.figure(figsize=(15, 5))
-            sns.pairplot(df, hue=target_col, vars=group)
+            sns.pairplot(DF, hue=target_col, vars=group)
             plt.show();
 
     return selected_columns
@@ -676,3 +680,227 @@ def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05)
 # Ejemplo de uso
 # selected_columns = plot_features_num_classification(df, target_col='target_column')
 # print(selected_columns)
+
+
+
+def get_features_cat_classification(df, target_col, normalize=False, mi_threshold=0):
+    """
+    Selecciona las columnas categóricas del dataframe cuya mutual information con 'target_col' cumple ciertos criterios.
+
+    Argumentos:
+    - df (pd.DataFrame): DataFrame de entrada.
+    - target_col (str): Nombre de la columna que se considerará como target para la selección.
+    - normalize (bool): Indica si se debe normalizar la mutual information. Por defecto, False.
+    - mi_threshold (float): Umbral de mutual information para la selección. Por defecto, 0.
+
+    Devuelve una lista con las columnas categóricas seleccionadas.
+
+    """
+
+    if target_col not in df.columns:
+        print(f'Error: La columna "{target_col}" no está en el DataFrame')
+        return None
+
+    if not (np.issubdtype(df[target_col].dtype, np.number) or len(df[target_col].unique()) < 10):
+        print(f"Error: La columna '{target_col}' no es una variable categórica o numérica discreta de baja cardinalidad.")
+        return None
+    
+    # Obtener las columnas categóricas
+    categorical_columns = df.select_dtypes(include=['object', 'category']).columns
+    
+    # Verificar que 'mi_threshold' sea un valor float entre 0 y 1 si 'normalize' es True
+    if normalize and not (isinstance(mi_threshold, float) and 0 <= mi_threshold <= 1):
+        print("Error: 'mi_threshold' debe ser un valor float entre 0 y 1 cuando normalize es True.")
+        return None
+    
+    # copia dataset
+    df=df.copy()
+
+    # Convertir las columnas categóricas a valores numéricos
+    label_encoder = LabelEncoder()
+    for col in categorical_columns:
+        df[col] = label_encoder.fit_transform(df[col])
+    
+    # Calcular mutual information
+    mi_values = mutual_info_classif(df[categorical_columns], df[target_col])
+    
+    # Normalizar mutual information si es necesario
+    if normalize:
+        total_mi = sum(mi_values)
+        if total_mi == 0:
+            print("Error: No se puede normalizar la mutual information porque la suma de valores es cero.")
+            return None
+        
+        mi_values = mi_values / total_mi
+    
+    # Seleccionar columnas cuya mutual information cumple con el umbral
+    selected_columns = [categorical_columns[i] for i, mi_value in enumerate(mi_values) if mi_value >= mi_threshold]
+    
+    return selected_columns
+
+
+def plot_features_cat_classification(df, target_col="", columns=[], mi_threshold=0.0, normalize=False):
+    """
+    Pinta la distribución de etiquetas de columnas categóricas respecto a 'target_col' que cumplen ciertos criterios.
+
+    Argumentos:
+    - df (pd.DataFrame): DataFrame de entrada.
+    - target_col (str): Nombre de la columna que se considerará como target para la selección. Por defecto, "".
+    - columns (list): Lista de columnas a considerar. Por defecto, [].
+    - mi_threshold (float): Umbral de mutual information para la selección. Por defecto, 0.0.
+    - normalize (bool): Indica si se debe normalizar la mutual information. Por defecto, False.
+
+    Devuelve:
+    None
+
+    """
+    # Comprobar que 'target_col' es una variable categórica del dataframe
+    if target_col not in df.columns:
+        print(f'Error: La columna "{target_col}" no está en el DataFrame')
+        return None
+
+    if not (np.issubdtype(df[target_col].dtype, np.number) or len(df[target_col].unique()) < 10):
+        print(f"Error: La columna '{target_col}' no es una variable categórica o numérica discreta de baja cardinalidad.")
+        return None
+    # Si la lista de columnas está vacía, seleccionar todas las variables categóricas del dataframe
+    if not columns:
+        columns = df.select_dtypes(include=['object', 'category']).columns
+    
+    # Seleccionar columnas que cumplen con el umbral de mutual information
+    selected_columns = get_features_cat_classification(df, target_col, normalize, mi_threshold)
+    selected_columns = [col for col in selected_columns if col in columns]
+
+    # Comprobar si no se seleccionaron columnas
+    if not selected_columns:
+        print("No se seleccionaron columnas que cumplieran con los criterios especificados.")
+        return None
+    
+    # Pintar la distribución de etiquetas para cada columna seleccionada
+    for col in selected_columns:
+        plt.figure(figsize=(10, 6))
+        sns.countplot(x=col, hue=target_col, data=df)
+        plt.title(f'Distribución de {col} respecto a {target_col}')
+        plt.show()
+
+def eval_model(df,target, predictions, problem_type, metrics):
+
+    """
+    Selecciona las columnas categóricas del dataframe cuya mutual information con 'target_col' cumple ciertos criterios.
+
+    Argumentos:
+    - df (DataFrame): DataFrame de entrada.
+    - target (str): Nombre de la columna objetivo.
+    - predictions (str): Predicciones a evaluar de la columna objetivo.
+    - problem_type (str): Indica si se trata de un problema de regresión o clasificación.
+    - metrics (list): Lista de métricas según la tipología de problema.
+
+    Retorna:
+    - una tupla con los resultados de las métricas deseadas (metrics) por orden.
+
+    """
+
+# Comprobamos que el df es un DataFrame válido
+    if not isinstance(df, pd.DataFrame):
+        print("Error: El parámetro 'df' debe ser un DataFrame válido.")
+        return None
+    
+# Comprobamos la existencia de la columna objetivo en el DataFrame
+    if target not in df.columns:
+        print(f"Error: La columna '{target}' no está en el DataFrame.")
+        return None
+
+# Creamos una lista vacía donde se irán guardando los resultados de las métricas por su orden en metrics.
+    results = []
+
+# Creamos un primer condicional según la tipología de problema y para cada metrica de metrics haremos la función deseada además de registrar el valor correspondiente en la lusta results.   
+# Alternativa de tipología de regresión.
+    if problem_type == "regression":
+# Recorremos la lista de metrics para analizarla y guardar sus resultados por orden en la lista results.
+        for metric in metrics:
+# Si la métrica es RMSE, se calcula, se muestra por pantalla y se añade a la lista results.
+            if metric == "RMSE":
+                rmse = mean_squared_error(target, predictions, squared=False)
+                print(f"RMSE: {rmse}")
+                results.append(rmse)
+# Si la métrica es MAE, se calcula, se muestra por pantalla y se añade a la lista results.            
+            if metric == "MAE":
+                mae = mean_absolute_error(target, predictions)
+                print(f"MAE: {mae}")
+                results.append(mae)
+# Si la métrica es MAPE, se calcula, se muestra por pantalla y se añade a la lista results. Si no se puede calcular, se imprime un mensaje indicándolo.           
+            if metric == "MAPE":
+                try:
+                    mape = mean_absolute_percentage_error(target, predictions)
+                    print(f"MAPE: {mape}")
+                    results.append(mape)
+                except Exception as e:
+                    print("Error al calcular MAPE:", e)
+                    results.append(None)
+# Si la métrica es GRAPH, se muestra por pantalla el scatter plot.            
+            if metric == "GRAPH":
+                plt.figure(figsize=(8, 6))
+                plt.scatter(target, predictions, alpha=0.5)
+                plt.xlabel("Target")
+                plt.ylabel("Predictions")
+                plt.title("Scatter Plot of Target vs Predictions")
+                plt.show()
+# Alternativa de tipología de clasificación.    
+    elif problem_type == "classification":
+
+        for metric in metrics:
+# Si la métrica es Accuaracy, se calcula, se muestra por pantalla y se añade a la lista results.
+            if metric == "ACCURACY":
+                accuracy = accuracy_score(target, predictions)
+                print(f"Accuracy: {accuracy}")
+                results.append(accuracy)
+# Si la métrica es Precision, se calcula, se muestra por pantalla y se añade a la lista results.            
+            if metric == "PRECISION":
+                precision = precision_score(target, predictions, average='macro')
+                print(f"Precision: {precision}")
+                results.append(precision)
+# Si la métrica es Recall, se calcula, se muestra por pantalla y se añade a la lista results.            
+            if metric == "RECALL":
+                recall = recall_score(target, predictions, average='macro')
+                print(f"Recall: {recall}")
+                results.append(recall)
+# Si la métrica es Classification report, se muestra por pantalla.            
+            if metric == "CLASS_REPORT":
+                class_report = classification_report(target, predictions)
+                print("Classification Report:")
+                print(class_report)
+# Si la métrica es Matrix, se muestra por pantalla la matriz de confusión con valores absolutos.            
+            if metric == "MATRIX":
+                matrix = confusion_matrix(target, predictions)
+                print("Confusion Matrix:")
+                print(matrix)
+# Si la métrica es Matrix recall, se muestra por pantalla la matriz de confusión con valores relativos por fila.            
+            if metric == "MATRIX_RECALL":
+                matrix_recall = confusion_matrix(target, predictions, normalize='true')
+                print("Confusion Matrix (Normalized by Recall):")
+                print(matrix_recall)
+# Si la métrica es Matrix prediction, se muestra por pantalla la matriz de confusión con valores relativos por columna.            
+            if metric == "MATRIX_PRED":
+                matrix_pred = confusion_matrix(target, predictions, normalize='pred')
+                print("Confusion Matrix (Normalized by Predictions):")
+                print(matrix_pred)
+# Si la métrica demanda la precisión contra una variable concreta se calcula, se muestra por pantalla y se añade a la lista results. Si la variable no es ninguna de las columnas del dataframe se informa del error.        
+            if metric.startswith("PRECISION_"):
+                label = metric.split("_")[1]
+                if label in df.columns():
+                    precision_x = precision_score(target, predictions, labels=[label])
+                    print(f"Precision for {label}: {precision_x}")
+                    results.append(precision_x)
+                else:
+                    print(f"Error: {label} no pertenece al dataframe.")
+# Si la métrica demanda el recall contra una variable concreta se calcula, se muestra por pantalla y se añade a la lista results. Si la variable no es ninguna de las columnas del dataframe se informa del error.            
+            if metric.startswith("RECALL_"):
+                label = metric.split("_")[1]
+                if label in df.columns():
+                    recall_x = recall_score(target, predictions, labels=[label])
+                    print(f"Recall for {label}: {recall_x}")
+                    results.append(recall_x)
+                else:
+                    print(f"Error: {label} no pertenece al dataframe.")
+
+# Retornamos una tupla con la lista de los resultados de cada métrica deseada por orden.    
+    return tuple(results)
