@@ -129,7 +129,8 @@ def tipifica_variables(df, umbral_cat: int, umbral_con: float):
 
 # Get Features Num Regression
 def get_features_num_reggresion(df,target_col, umbral_corr,pvalue=None):
-    if target_col not in df.columns:
+    DF = df.copy()
+    if target_col not in DF.columns:
         """
     get_features_num_regresion: selecciona las características numéricas para un problema de regrersión. 
     Esta función verifica que los datos sean adecuados y automáticamente selecciona las columnas numéricas que
@@ -145,7 +146,7 @@ def get_features_num_reggresion(df,target_col, umbral_corr,pvalue=None):
     - selected_features (list): Lista de características seleccionadas que cumplen con los criterios.
     """  
     
-    if not np.issubdtype(df[target_col].dtype, np.number):# Comprobar que la columna objetivo es una variable numérica continua
+    if not np.issubdtype(DF[target_col].dtype, np.number):# Comprobar que la columna objetivo es una variable numérica continua
         print(f"Error: La columna '{target_col}' no es una variable numérica continua.")
         return None
     
@@ -157,12 +158,12 @@ def get_features_num_reggresion(df,target_col, umbral_corr,pvalue=None):
         print("Error: pvalue debe ser None o un número entre 0 y 1.")
         return None
     
-    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()  # Obtener columnas numéricas del DataFrame
+    numeric_cols = DF.select_dtypes(include=np.number).columns.tolist()  # Obtener columnas numéricas del DataFrame
 
     Correlations = []  # Calcular la correlación y p-values para cada columna numérica con 'target_col'
     for col in numeric_cols:
         if col != target_col:
-            correlation, p_value = pearsonr(df[col], df[target_col])
+            correlation, p_value = pearsonr(DF[col], DF[target_col])
             Correlations.append((col, correlation, p_value))
 
     selected_features = []  # Filtrar las columnas basadas en el umbral de correlación y p-value
@@ -181,7 +182,7 @@ def get_features_num_reggresion(df,target_col, umbral_corr,pvalue=None):
 
 
 # Plot Features Num Regression
-def plot_features_num_regression(dataframe, target_col="", columns=[]):
+def plot_features_num_regression(df, target_col="", columns=[]):
     """
     Genera un pairplot para características numéricas basado en la correlación con la columna objetivo.
 
@@ -193,12 +194,13 @@ def plot_features_num_regression(dataframe, target_col="", columns=[]):
     Retorna:
     - None
     """
+    DF = df.copy()
     # Verifica que el argumento 'dataframe' sea un DataFrame de pandas.
-    if not isinstance(dataframe, pd.DataFrame):
+    if not isinstance(DF, pd.DataFrame):
         raise ValueError("El argumento 'dataframe' debe ser un DataFrame de pandas.")
 
     # Verifica que 'target_col' esté en las columnas del DataFrame.
-    if target_col not in dataframe.columns:
+    if target_col not in DF.columns:
         raise ValueError("La columna objetivo '{}' no se encuentra en el dataframe.".format(target_col))
 
     # Verifica que 'columns' sea una lista de strings.
@@ -206,22 +208,22 @@ def plot_features_num_regression(dataframe, target_col="", columns=[]):
         raise ValueError("'columns' debe ser una lista de strings.")
 
     # Verifica que todas las columnas en 'columns' existan en el DataFrame.
-    if not all(col in dataframe.columns for col in columns):
+    if not all(col in DF.columns for col in columns):
         raise ValueError("Todas las columnas en 'columns' deben existir en el dataframe.")
 
     # Si 'columns' está vacío, utiliza todas las columnas numéricas.
     if not columns:
-        columns = dataframe.select_dtypes(include=['number']).columns.tolist()
+        columns = DF.select_dtypes(include=['number']).columns.tolist()
 
     # Imprime la correlación y p-values entre cada columna numérica y 'target_col'.
     for col in columns:
         if col != target_col:
-            correlation, p_val = pearsonr(dataframe[col], dataframe[target_col])
+            correlation, p_val = pearsonr(DF[col], DF[target_col])
             print(f"Correlación entre {col} y {target_col}: {correlation:.4f}, p-value: {p_val:.4f}")
 
     # Genera un pairplot para las columnas seleccionadas.
     subset_columns = [target_col] + columns
-    subset_data = dataframe[subset_columns]
+    subset_data = DF[subset_columns]
     sns.pairplot(subset_data, diag_kind='kde')
     plt.show()
 
@@ -244,19 +246,20 @@ def get_features_cat_regression(df,target_col,pvalue=0.05,umbral_card=0.5):
     Returns:
         cat_features: lista de las variables categóricas que han sido identificadas como features.
     """
+    DF = df.copy()
     umbral_card=0.5
-    if target_col not in df.columns:
+    if target_col not in DF.columns:
         print(f"Error: la columna {target_col} no existe.")
         return None
     
-    if not np.issubdtype(df[target_col].dtype, np.number) or (not any(df[col].nunique() / len(df) * 100 > umbral_card for col in df.columns)):
+    if not np.issubdtype(DF[target_col].dtype, np.number) or (not any(DF[col].nunique() / len(DF) * 100 > umbral_card for col in df.columns)):
         print(f"Error: la columna {target_col} no es numérica y/o su cardinalidad es inferior a {umbral_card}.")
         return None
     
     if not isinstance(pvalue, float):
         print(f"Error: la variable {pvalue} no es float.")
         return None
-    categorical_cols = df.select_dtypes(include='object').columns.tolist()
+    categorical_cols = DF.select_dtypes(include='object').columns.tolist()
     cat_features = []
     for col in categorical_cols: # Calcular la correlación y p-values para cada columna numérica con 'target_col'
         contingency_table = pd.crosstab(df[col], df[target_col])
@@ -281,14 +284,15 @@ def plot_features_cat_regression(df,target_col="",columns=[],umbral_card=0.5,pva
     Returns:
         figure: histogramas
     """
+    DF = df.copy()
     # Comprobación de los valores de entrada:
-    if target_col not in df.columns:
+    if target_col not in DF.columns:
         print(f"Error: la columna {target_col} no existe.")
         return None
-    if not np.issubdtype(df[target_col].dtype, np.number):
+    if not np.issubdtype(DF[target_col].dtype, np.number):
         print(f"Error: La columna '{target_col}' no es una variable numérica continua.")
         return None
-    if (df[target_col].nunique()/(len(df[target_col])*100))<umbral_card:
+    if (DF[target_col].nunique()/(len(DF[target_col])*100))<umbral_card:
         print(f"Error: la cardinalidad de la columna {target_col} es inferior a {umbral_card}.")
         return None
     if pvalue is not None and not (0 <= pvalue <= 1):
@@ -299,18 +303,18 @@ def plot_features_cat_regression(df,target_col="",columns=[],umbral_card=0.5,pva
     # Revisión del listado columns y creación de los gráficos.
     # Si columns está vacía:
     if columns==[]:
-        columns = df.select_dtypes(include=['number']).columns.tolist()
+        columns = DF.select_dtypes(include=['objet', "category"]).columns.tolist()
         num_features = []  # Filtra las columnas basadas en la correlación y el valor p
         for col in columns:
             if col != target_col:
-                correlation, p_value = pearsonr(df[col], df[target_col])
+                correlation, p_value = pearsonr(DF[col], DF[target_col])
                 if abs(correlation) > umbral_corr and (pvalue is None or p_value < pvalue):
                     num_features.append(col)
         num_cols = len(num_features)
         fig, axes = plt.subplots(nrows=1, ncols=num_cols, figsize=(15, 5))
         for i, col in enumerate(num_features):
             ax = axes[i]
-            sns.histplot(data=df, x=target_col, y=col, ax=ax, bins=20, color='skyblue', edgecolor='black')
+            sns.histplot(data=DF, x=target_col, y=col, ax=ax, bins=20, color='skyblue', edgecolor='black')
             ax.set_title(f'{col} vs {target_col}')
             ax.set_xlabel(target_col)
             ax.set_ylabel('Frequency')
@@ -320,15 +324,15 @@ def plot_features_cat_regression(df,target_col="",columns=[],umbral_card=0.5,pva
     else:
         columns_in_df=[]
         for col in columns:
-            if col in df.columns:
+            if col in DF.columns:
                 columns_in_df.append(col)
         if columns_in_df==[]:
             print(f"Error: las columnas no coinciden con las del df.")
             return None                
-        categorical_cols = df.select_dtypes(include='object').columns.tolist()
+        categorical_cols = DF.select_dtypes(include='object').columns.tolist()
         cat_features = []
         for col in categorical_cols: 
-            contingency_table = pd.crosstab(df[col], df[target_col])
+            contingency_table = pd.crosstab(DF[col], DF[target_col])
             chi2, p_value, dof, expected= chi2_contingency(contingency_table)
             if p_value < pvalue:
                 cat_features.append(col)
@@ -339,7 +343,7 @@ def plot_features_cat_regression(df,target_col="",columns=[],umbral_card=0.5,pva
             if col in cat_features:
                 plt.figure(figsize=(10, 6))
                 for valor in df[col].unique():
-                    sns.histplot(df[df[col] == valor][target_col], kde= True, label  = str(valor))
+                    sns.histplot(DF[df[col] == valor][target_col], kde= True, label  = str(valor))
                 plt.title(f'Histograma de {col} en relación con {target_col}')
                 plt.xlabel(target_col)
                 plt.ylabel('Frecuencia')
@@ -565,17 +569,18 @@ def get_features_num_classification(df, target_col, pvalue= 0.05):
     Retorna:
     - selected_features (list): Lista de características seleccionadas que cumplen con los criterios.
     """  
+    DF = df.copy()
     # Comprobación de que df es un DataFrame válido
-    if not isinstance(df, pd.DataFrame):
+    if not isinstance(DF, pd.DataFrame):
         print("Error: El parámetro 'df' debe ser un DataFrame válido.")
         return None
    
     # Comprobación de la existencia de la columna objetivo en el DataFrame    
-    if target_col not in df.columns:
+    if target_col not in DF.columns:
         print(f'Error: La columna "{target_col}" no está en el DataFrame')
         return None
 
-    if not (np.issubdtype(df[target_col].dtype, np.number) or len(df[target_col].unique()) < 10):
+    if not (np.issubdtype(DF[target_col].dtype, np.number) or len(DF[target_col].unique()) < 10):
         print(f"Error: La columna '{target_col}' no es una variable categórica o numérica discreta de baja cardinalidad.")
         return None
 
@@ -585,14 +590,13 @@ def get_features_num_classification(df, target_col, pvalue= 0.05):
         return None
 
     # Obtener columnas numéricas del DataFrame
-    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()  
-
+    numeric_cols = DF.select_dtypes(include=np.number).columns.tolist()  
     # Realizar test de ANOVA y seleccionar las features basadas en el p-value
     selected_features = []  
 
     for col in numeric_cols:
         if col != target_col:
-            p_val = f_oneway(df[col][df[target_col] == 0], df[col][df[target_col] == 1]).pvalue
+            p_val = f_oneway(DF[col][DF[target_col] == 0], DF[col][DF[target_col] == 1]).pvalue
             if p_val <= pvalue:
                 selected_features.append(col)
 
@@ -619,18 +623,19 @@ def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05)
     Retorna:
     - selected_columns (list): Lista de columnas seleccionadas que cumplen con los criterios.
     """
+    DF = df.copy()
     # Comprobación de que df es un DataFrame válido
     if not isinstance(df, pd.DataFrame):
         print("Error: El parámetro 'df' debe ser un DataFrame válido.")
         return None
     
     # Comprobación de la existencia de la columna objetivo en el DataFrame
-    if target_col not in df.columns:
+    if target_col not in DF.columns:
         print(f"Error: La columna '{target_col}' no está en el DataFrame.")
         return None
     
     # Comprobación del tipo y la cantidad de valores únicos de la columna objetivo para decidir si usar diferentes pairplots
-    unique_values = df[target_col].nunique()
+    unique_values = DF[target_col].nunique()
     if unique_values > 5:
         use_multiple_pairplots = True
     else:
@@ -639,14 +644,14 @@ def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05)
     # Comprobación de si la lista de columnas está vacía
     if not columns:
         # Si la lista de columnas está vacía, seleccionar todas las columnas numéricas del DataFrame
-        columns = df.select_dtypes(include=np.number).columns.tolist()
+        columns = DF.select_dtypes(include=np.number).columns.tolist()
     
     selected_columns = []  
     
     # Realizar el test ANOVA y seleccionar las columnas basadas en el p-value
     for col in columns:
         if col != target_col:
-            p_val = f_oneway(df[col][df[target_col] == 0], df[col][df[target_col] == 1]).pvalue
+            p_val = f_oneway(DF[col][DF[target_col] == 0], DF[col][DF[target_col] == 1]).pvalue
             if p_val <= pvalue:
                 selected_columns.append(col)
     
@@ -666,11 +671,11 @@ def plot_features_num_classification(df, target_col="", columns=[], pvalue=0.05)
         if use_multiple_pairplots:
             for value in df[target_col].unique():
                 plt.figure(figsize=(15, 5))
-                sns.pairplot(df[df[target_col] == value], hue=target_col, vars=group)
+                sns.pairplot(DF[DF[target_col] == value], hue=target_col, vars=group)
                 plt.show()
         else:
             plt.figure(figsize=(15, 5))
-            sns.pairplot(df, hue=target_col, vars=group)
+            sns.pairplot(DF, hue=target_col, vars=group)
             plt.show();
 
     return selected_columns
@@ -734,48 +739,74 @@ def get_features_cat_classification(df, target_col, normalize=False, mi_threshol
     return selected_columns
 
 
-def plot_features_cat_classification(df, target_col="", columns=[], mi_threshold=0.0, normalize=False):
+def plot_features_cat_classification(df, target_col="", columns=[], pvalue=0.05):
     """
-    Pinta la distribución de etiquetas de columnas categóricas respecto a 'target_col' que cumplen ciertos criterios.
-
+    Función que genera pairplots de características numéricas en función de la columna objetivo para un problema de clasificación.
+    
     Argumentos:
-    - df (pd.DataFrame): DataFrame de entrada.
-    - target_col (str): Nombre de la columna que se considerará como target para la selección. Por defecto, "".
-    - columns (list): Lista de columnas a considerar. Por defecto, [].
-    - mi_threshold (float): Umbral de mutual information para la selección. Por defecto, 0.0.
-    - normalize (bool): Indica si se debe normalizar la mutual information. Por defecto, False.
+     - df (DataFrame): El conjunto de datos.
+     - target_col (str, opcional): El nombre de la columna objetivo que queremos predecir. Por defecto, "".
+     - columns (list, opcional): Lista de nombres de columnas a considerar. Por defecto, [].
+     - pvalue (float, opcional): Umbral de significación estadística (entre 0 y 1) para el test de ANOVA. Por defecto, 0.05.
 
-    Devuelve:
-    None
-
+    Retorna:
+    - selected_columns (list): Lista de columnas seleccionadas que cumplen con los criterios.
     """
-    # Comprobar que 'target_col' es una variable categórica del dataframe
+    # Comprobación de que df es un DataFrame válido
+    if not isinstance(df, pd.DataFrame):
+        print("Error: El parámetro 'df' debe ser un DataFrame válido.")
+        return None
+    
+    # Comprobación de la existencia de la columna objetivo en el DataFrame
     if target_col not in df.columns:
-        print(f'Error: La columna "{target_col}" no está en el DataFrame')
+        print(f"Error: La columna '{target_col}' no está en el DataFrame.")
         return None
-
-    if not (np.issubdtype(df[target_col].dtype, np.number) or len(df[target_col].unique()) < 10):
-        print(f"Error: La columna '{target_col}' no es una variable categórica o numérica discreta de baja cardinalidad.")
-        return None
-    # Si la lista de columnas está vacía, seleccionar todas las variables categóricas del dataframe
+    
+    # Comprobación del tipo y la cantidad de valores únicos de la columna objetivo para decidir si usar diferentes pairplots
+    unique_values = df[target_col].nunique()
+    if unique_values > 5:
+        use_multiple_pairplots = True
+    else:
+        use_multiple_pairplots = False
+    
+    # Comprobación de si la lista de columnas está vacía
     if not columns:
-        columns = df.select_dtypes(include=['object', 'category']).columns
+        # Si la lista de columnas está vacía, seleccionar todas las columnas numéricas del DataFrame
+        columns = df.select_dtypes(include=["object","category"]).columns.tolist()
     
-    # Seleccionar columnas que cumplen con el umbral de mutual information
-    selected_columns = get_features_cat_classification(df, target_col, normalize, mi_threshold)
-    selected_columns = [col for col in selected_columns if col in columns]
-
-    # Comprobar si no se seleccionaron columnas
+    selected_columns = []  
+    
+    # Realizar el test ANOVA y seleccionar las columnas basadas en el p-value
+    for col in columns:
+        if col != target_col:
+            p_val = f_oneway(df[col][df[target_col] == 0], df[col][df[target_col] == 1]).pvalue
+            if p_val <= pvalue:
+                selected_columns.append(col)
+    
+    # Verificar si no se encontraron columnas que cumplan con los criterios
     if not selected_columns:
-        print("No se seleccionaron columnas que cumplieran con los criterios especificados.")
+        print("No hay columnas seleccionadas con el umbral de p-value dado.")
         return None
     
-    # Pintar la distribución de etiquetas para cada columna seleccionada
-    for col in selected_columns:
-        plt.figure(figsize=(10, 6))
-        sns.countplot(x=col, hue=target_col, data=df)
-        plt.title(f'Distribución de {col} respecto a {target_col}')
-        plt.show()
+    # Si hay más de 5 columnas seleccionadas, dividirlas en grupos de máximo 5
+    if len(selected_columns) > 5:
+        column_groups = [selected_columns[i:i+4] for i in range(0, len(selected_columns), 4)]
+    else:
+        column_groups = [selected_columns]
+    
+    # Generar los pairplots
+    for group in column_groups:
+        if use_multiple_pairplots:
+            for value in df[target_col].unique():
+                plt.figure(figsize=(15, 5))
+                sns.pairplot(df[df[target_col] == value], hue=target_col, vars=group)
+                plt.show()
+        else:
+            plt.figure(figsize=(15, 5))
+            sns.pairplot(df, hue=target_col, vars=group)
+            plt.show();
+
+    return selected_columns
 
 def eval_model(df,target, predictions, problem_type, metrics):
 
