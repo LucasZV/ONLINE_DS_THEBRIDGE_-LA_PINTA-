@@ -23,6 +23,7 @@ from scipy import stats
 from scipy.stats import pearsonr, chi2_contingency
 from sklearn.feature_selection import SelectFromModel
 from sklearn.feature_selection import mutual_info_classif
+from sklearn.metrics import mean_squared_error, mean_absolute_error, accuracy_score, precision_score, recall_score, classification_report, confusion_matrix, mean_absolute_percentage_error
 
 # Describe_df 
 
@@ -769,3 +770,126 @@ def plot_features_cat_classification(df, target_col="", columns=[], mi_threshold
         sns.countplot(x=col, hue=target_col, data=df)
         plt.title(f'Distribución de {col} respecto a {target_col}')
         plt.show()
+
+def eval_model(df,target, predictions, problem_type, metrics):
+
+    """
+    Selecciona las columnas categóricas del dataframe cuya mutual information con 'target_col' cumple ciertos criterios.
+
+    Argumentos:
+    - df (DataFrame): DataFrame de entrada.
+    - target (str): Nombre de la columna objetivo.
+    - predictions (str): Predicciones a evaluar de la columna objetivo.
+    - problem_type (str): Indica si se trata de un problema de regresión o clasificación.
+    - metrics (list): Lista de métricas según la tipología de problema.
+
+    Retorna:
+    - una tupla con los resultados de las métricas deseadas (metrics) por orden.
+
+    """
+
+# Comprobamos que el df es un DataFrame válido
+    if not isinstance(df, pd.DataFrame):
+        print("Error: El parámetro 'df' debe ser un DataFrame válido.")
+        return None
+    
+# Comprobamos la existencia de la columna objetivo en el DataFrame
+    if target not in df.columns:
+        print(f"Error: La columna '{target}' no está en el DataFrame.")
+        return None
+
+# Creamos una lista vacía donde se irán guardando los resultados de las métricas por su orden en metrics.
+    results = []
+
+# Creamos un primer condicional según la tipología de problema y para cada metrica de metrics haremos la función deseada además de registrar el valor correspondiente en la lusta results.   
+# Alternativa de tipología de regresión.
+    if problem_type == "regression":
+# Recorremos la lista de metrics para analizarla y guardar sus resultados por orden en la lista results.
+        for metric in metrics:
+# Si la métrica es RMSE, se calcula, se muestra por pantalla y se añade a la lista results.
+            if metric == "RMSE":
+                rmse = mean_squared_error(target, predictions, squared=False)
+                print(f"RMSE: {rmse}")
+                results.append(rmse)
+# Si la métrica es MAE, se calcula, se muestra por pantalla y se añade a la lista results.            
+            if metric == "MAE":
+                mae = mean_absolute_error(target, predictions)
+                print(f"MAE: {mae}")
+                results.append(mae)
+# Si la métrica es MAPE, se calcula, se muestra por pantalla y se añade a la lista results. Si no se puede calcular, se imprime un mensaje indicándolo.           
+            if metric == "MAPE":
+                try:
+                    mape = mean_absolute_percentage_error(target, predictions)
+                    print(f"MAPE: {mape}")
+                    results.append(mape)
+                except Exception as e:
+                    print("Error al calcular MAPE:", e)
+                    results.append(None)
+# Si la métrica es GRAPH, se muestra por pantalla el scatter plot.            
+            if metric == "GRAPH":
+                plt.figure(figsize=(8, 6))
+                plt.scatter(target, predictions, alpha=0.5)
+                plt.xlabel("Target")
+                plt.ylabel("Predictions")
+                plt.title("Scatter Plot of Target vs Predictions")
+                plt.show()
+# Alternativa de tipología de clasificación.    
+    elif problem_type == "classification":
+
+        for metric in metrics:
+# Si la métrica es Accuaracy, se calcula, se muestra por pantalla y se añade a la lista results.
+            if metric == "ACCURACY":
+                accuracy = accuracy_score(target, predictions)
+                print(f"Accuracy: {accuracy}")
+                results.append(accuracy)
+# Si la métrica es Precision, se calcula, se muestra por pantalla y se añade a la lista results.            
+            if metric == "PRECISION":
+                precision = precision_score(target, predictions, average='macro')
+                print(f"Precision: {precision}")
+                results.append(precision)
+# Si la métrica es Recall, se calcula, se muestra por pantalla y se añade a la lista results.            
+            if metric == "RECALL":
+                recall = recall_score(target, predictions, average='macro')
+                print(f"Recall: {recall}")
+                results.append(recall)
+# Si la métrica es Classification report, se muestra por pantalla.            
+            if metric == "CLASS_REPORT":
+                class_report = classification_report(target, predictions)
+                print("Classification Report:")
+                print(class_report)
+# Si la métrica es Matrix, se muestra por pantalla la matriz de confusión con valores absolutos.            
+            if metric == "MATRIX":
+                matrix = confusion_matrix(target, predictions)
+                print("Confusion Matrix:")
+                print(matrix)
+# Si la métrica es Matrix recall, se muestra por pantalla la matriz de confusión con valores relativos por fila.            
+            if metric == "MATRIX_RECALL":
+                matrix_recall = confusion_matrix(target, predictions, normalize='true')
+                print("Confusion Matrix (Normalized by Recall):")
+                print(matrix_recall)
+# Si la métrica es Matrix prediction, se muestra por pantalla la matriz de confusión con valores relativos por columna.            
+            if metric == "MATRIX_PRED":
+                matrix_pred = confusion_matrix(target, predictions, normalize='pred')
+                print("Confusion Matrix (Normalized by Predictions):")
+                print(matrix_pred)
+# Si la métrica demanda la precisión contra una variable concreta se calcula, se muestra por pantalla y se añade a la lista results. Si la variable no es ninguna de las columnas del dataframe se informa del error.        
+            if metric.startswith("PRECISION_"):
+                label = metric.split("_")[1]
+                if label in df.columns():
+                    precision_x = precision_score(target, predictions, labels=[label])
+                    print(f"Precision for {label}: {precision_x}")
+                    results.append(precision_x)
+                else:
+                    print(f"Error: {label} no pertenece al dataframe.")
+# Si la métrica demanda el recall contra una variable concreta se calcula, se muestra por pantalla y se añade a la lista results. Si la variable no es ninguna de las columnas del dataframe se informa del error.            
+            if metric.startswith("RECALL_"):
+                label = metric.split("_")[1]
+                if label in df.columns():
+                    recall_x = recall_score(target, predictions, labels=[label])
+                    print(f"Recall for {label}: {recall_x}")
+                    results.append(recall_x)
+                else:
+                    print(f"Error: {label} no pertenece al dataframe.")
+
+# Retornamos una tupla con la lista de los resultados de cada métrica deseada por orden.    
+    return tuple(results)
