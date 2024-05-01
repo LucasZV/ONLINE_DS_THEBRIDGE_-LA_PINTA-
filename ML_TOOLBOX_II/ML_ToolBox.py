@@ -858,7 +858,7 @@ def eval_model(target, predictions, problem_type, metrics):
                 print(matrix_pred)
             elif metric.startswith("PRECISION_"):
                 label = metric.split("_")[1]
-                if label in np.unique(target):
+                if label in [str(valor) for valor in np.unique(target)]:
                     precision_x = precision_score(target, predictions, labels=[label])
                     print(f"Precision for {label}: {precision_x}")
                     results.append(precision_x)
@@ -866,8 +866,8 @@ def eval_model(target, predictions, problem_type, metrics):
                     print(f"Error: {label} no está presente en las clases reales.")
             elif metric.startswith("RECALL_"):
                 label = metric.split("_")[1]
-                if label in np.unique(target):
-                    recall_x = recall_score(target, predictions, labels=[label])
+                if label in [str(valor) for valor in np.unique(target)]:
+                    recall_x = recall_score(target, predictions, labels=[label], average = None)
                     print(f"Recall for {label}: {recall_x}")
                     results.append(recall_x)
                 else:
