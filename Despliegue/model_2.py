@@ -15,7 +15,7 @@ X_train, X_test, y_train, y_test = train_test_split(data.drop(columns=["DeathRat
                                                     test_size = 0.20,
                                                     random_state=42)
 
-model = pickle.load('best_rf_model.pkl')
+model = pickle.load('best_xgb_model.pkl')
 model.fit(X_train, y_train)
 
 cross_val_train_MSE = cross_val_score(model,X_train,y_train, cv = 4, scoring= "neg_mean_squared_error")
@@ -23,7 +23,7 @@ cross_val_train_MAPE = cross_val_score(model,X_train,y_train, cv = 4, scoring= "
 mse_cross_val = -np.mean(cross_val_train_MSE)
 rmse_cross_val = np.mean([np.sqrt(-mse_fold) for mse_fold in cross_val_train_MSE])
 mape_cross_val = -np.mean(cross_val_train_MAPE)
-print("Train Mean Sales", y_train.mean())
+print("Train Mean Death Rate Per 100k", y_train.mean())
 print("MSE Cross: ", mse_cross_val)
 print("RMSE Cross: ", rmse_cross_val)
 print("MAPE Cross: ", mape_cross_val)
@@ -34,6 +34,6 @@ print("MAPE Test: ", mean_absolute_percentage_error(y_test, model.predict(X_test
 
 
 model.fit(data.drop(columns = ["DeathRatePer100K"]), data["DeathRatePer100K"])
-pickle.dump(model, open('ad_model.pkl', 'wb'))
+pickle.dump(model, open('xgb_model.pkl', 'wb'))
 
 

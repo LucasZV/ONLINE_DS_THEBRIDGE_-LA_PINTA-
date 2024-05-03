@@ -13,12 +13,12 @@ import subprocess
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
 
-path_base = "/home/dsonlineli/Taller_Despliegue/"
+path_base = "/repo/aqui_path_repo/"
 
 colaboradores = [
     {"colab_id": 1, "name": "Alba", "city": "Barcelona", "age": 28},
     {"colab_id": 2, "name": "Enrique", "city": "Madrid", "age": 28},
-    {"colab_id": 3, "name": "Lucas", "city": "Sevilla", "age": 26},
+    {"colab_id": 3, "name": "Lucas", "city": "Jaén", "age": 27},
     {"colab_id": 4, "name": "Martín", "city": "Valencia", "age": 31}]
 
 ####################
@@ -61,22 +61,47 @@ def colab_id():
 @app.route('/api/v1/predict', methods=['GET'])
 def predict(): # Ligado al endpoint '/api/v1/predict', con el método GET
 
-    model = pickle.load(open(path_base + 'ad_model.pkl','rb'))
-    tv = request.args.get('tv', None)
-    radio = request.args.get('radio', None)
-    newspaper = request.args.get('newspaper', None)
+    model = pickle.load(open(path_base + 'xgb_model.pkl','rb')) # si no funciona --> best_xgb_model
 
-    print(tv,radio,newspaper)
-    print(type(tv))
-
-    if tv is None or radio is None or newspaper is None:
-        return "Args empty, the data are not enough to predict, STUPID!!!!"
-    else:
-        prediction = model.predict([[float(tv),float(radio),float(newspaper)]])
+    # Hay que ver que argumentos necesita el modelo para predecir
+    #############################################################
     
-    return jsonify({'predictions': prediction[0]})
+    #tv = request.args.get('tv', None)
+    #radio = request.args.get('radio', None)
+    #newspaper = request.args.get('newspaper', None)
+
+    #print(tv,radio,newspaper)
+    #print(type(tv))
+
+    #if tv is None or radio is None or newspaper is None:
+        #return "Args empty, the data are not enough to predict, STUPID!!!!"
+    #else:
+       #prediction = model.predict([[float(tv),float(radio),float(newspaper)]])
+    
+    #return jsonify({'predictions': prediction[0]})
 
 ###################
+    
+@app.route('/api/v1/retrain', methods=['GET'])
+def retrain(): # Rutarlo al endpoint '/api/v1/retrain/', metodo GET
+    if os.path.exists(path_base + "data_despliegue/data_suicide_raates_new.csv"):
+        data = pd.read_csv(path_base + 'data/Advertising_new.csv')
+
+        X_train, X_test, y_train, y_test = train_test_split(data.drop(columns=['sales']),
+                                                        data['sales'],
+                                                        test_size = 0.20,
+                                                        random_state=42)
+        model = pickle.load(open(path_base + 'xgb_model.pkl','rb')) #igual hay que poner best_xgb_model
+        model.fit(X_train, y_train)
+        rmse = np.sqrt(mean_squared_error(y_test, model.predict(X_test)))
+        mape = mean_absolute_percentage_error(y_test, model.predict(X_test))
+        model.fit(data.drop(columns=['sales']), data['sales'])
+        pickle.dump(model, open(path_base + 'ad_model.pkl', 'wb'))
+
+        return f"Model retrained. New evaluation metric RMSE: {str(rmse)}, MAPE: {str(mape)}"
+    else:
+        return f"<h2>New data for retrain NOT FOUND. Nothing done!</h2>"
+    
 
 @app.route('/webhook_2024', methods=['POST'])
 def webhook():
